@@ -18,29 +18,52 @@ This site is that square. It serves three goals at once:
 
 ## Positioning
 
-The one idea a visitor should leave with:
+**Witness.** Not judge, not author, not magician.
 
-> Code is now infinite and cheap. What is scarce is the judgment to say *this
-> output is lying, and here is how I know*.
+The author's own framing, arrived at in his words: *granting machines citizenship
+is not a right I hold. At most I can testify to it.* An apprentice, explicitly —
+the copy claims no mastery anywhere.
 
-This is not a new identity. It is the "code detective" moved up one level: from
-finding the bug in the code to finding the lie in the machine's answer. Four
-existing projects already circle this question — `hivemark` (verifiable track
-records for review agents), Guardian's skeptic pass (`confirmed` / `refuted` /
-`uncertain`), `llm-benchmark/evaluator` (detects exploitative agent behavior),
-and `aura` (agents that must trust each other to negotiate).
+This is not an invented frame. It is already written into the work:
+
+- An attestation **is** a testimony. A year of building attestations reads
+  differently once the word is translated.
+- From the hivemark spec: *"An attestation asserts that this hivemark instance
+  **observed** a claim and the verdict its skeptic reached. It does **not**
+  assert the finding is correct."* That is the doctrine of a witness stated as
+  an API contract — speak to what was seen, and not one word beyond it.
+- `verifyEnvelope` returns an `unverifiable` list: a refusal to testify past
+  observation.
+- The skeptic pass returns `confirmed` / `refuted` / `uncertain`, where
+  `uncertain` is not a failure but the honest answer of a witness.
+- The weekly anchor is never backfilled, because an anchor published late would
+  assert a time the witness did not observe.
+
+**Why "skeptic" was close and still wrong.** An investigator and a witness hold
+evidence to the same standard but stand differently toward the subject: the
+investigator looks for the lie, the witness simply says what was there. The
+author's stance toward machines is collaborative, not adversarial — *"Человек не
+растворяется в цифровом, но и не господствует над ним"* (Digital Ontology
+Manifesto), and *"цифровые машины хотят донести до мясных машин свои
+requirements"*, which is the sentence of a translator, not a prosecutor.
+
+The frame is grounded in the author's faith and is stated openly on `/me` — see
+Pages. The exact wording there is the author's to write and is not drafted here.
 
 ## The central move
 
-**The site tells the truth about what is dead.**
+**The site does not bear false witness about its own city.**
 
 A normal portfolio lies by default: twenty projects, all of them apparently
 thriving. Visitors sense it and believe none of it.
 
-This site pings every district and reports what it finds. Thirteen subdomains
-do not answer; the map says so, in as many words. That is not a weakness — it is
-the skeptic's thesis expressed as form rather than as a claim. The same move as
-`verifyEnvelope` returning an `unverifiable` list instead of a green check.
+This site pings every district and reports what it finds. Thirteen subdomains do
+not answer; the map says so, in as many words.
+
+This is not a clever design device that could be traded for a different one. A
+site that paints dead districts green gives false testimony about its own city,
+and no amount of visual appeal would make that shippable for this author. The
+honesty is load-bearing, not decorative.
 
 ## Hard constraints
 
@@ -54,8 +77,9 @@ than shipped.**
    measurements.
 2. **No input required.** The page has already run the query before the visitor
    arrives. Someone who has never used a terminal reads it fine.
-3. **It says bad things about itself.** Dead districts, stale data, and silent
-   months are all shown plainly.
+3. **It does not testify beyond what it observed.** Dead districts, stale data,
+   and silent months are shown plainly; unverified state is never rendered as
+   healthy. This is the one constraint the positioning cannot survive losing.
 
 ## Form: the site is a terminal
 
@@ -74,8 +98,8 @@ cursor, no CRT effects. tmux, not a retro movie prop.
 ```
 zae.life ~ $ whoami && districts --status
 
-  ██ zaebee · code detective
-     Code got infinite. I find out whether it is lying.
+  ██ zaebee · witness
+     ‹tagline: the author's to write›
 
   22 districts · 4 alive · 13 cold · 5 offline · checked 6 min ago
 
@@ -131,7 +155,7 @@ Three. No project detail pages — cards expand inline on the map.
 |---|---|---|
 | `/` | Positioning line + live map of districts, cards expand in place | Be found, playground |
 | `/log` | Journal entries | Think out loud |
-| `/me` | Who, what, contact. One screen, not a résumé | Be contacted |
+| `/me` | Who, what, contact — and the frame stated openly: whose apprentice, and why the author declines the role of judge. One screen, not a résumé | Be contacted |
 
 **Explicitly out of scope for v1:** a list-view of projects (the map is the
 differentiator), a services/pricing page (repels peers; clients will write
@@ -219,14 +243,25 @@ catch in other people's systems; shipping it here would refute the whole site.
 
 ## Journal
 
-### Format: a case file, not an essay
+### Format: an attestation, not an essay
+
+Entries are called attestations — the author's own technical vocabulary, and the
+plain English word for what they are.
 
 ```
-what the machine claimed  →  what turned out to be true  →  how I caught it
+claimed   ──  what was asserted
+observed  ──  what I actually saw
+attested  ──  what that supports, and what it does not
 ```
 
-The template exists because the blank page is what kills blogs. Three questions,
-a paragraph each. A 300-word entry is a finished entry, not a draft.
+The third field is the one that matters and the one no other blog has. It is
+`verifyEnvelope`'s `unverifiable` list applied to prose: every entry ends by
+naming the limit of its own testimony. An entry that cannot fill it honestly is
+not ready.
+
+The template also exists for a duller reason — the blank page is what kills
+blogs. Three prompts, a paragraph each. A 300-word entry is a finished entry,
+not a draft.
 
 ### No cadence promise
 
@@ -236,19 +271,21 @@ are treated.
 
 ### Launch with three entries
 
-An empty journal reads as abandoned on day one. Three case files already exist
-in written work and need only re-framing:
+An empty journal reads as abandoned on day one. Three attestations already exist
+in written work and need only re-framing. All three are about the same thing:
+what a record can honestly be made to say.
 
-1. **The soulbound token that was specified and dropped.** From the hivemark
-   spec: identity is content-addressed, so a token cannot confer existence, and
-   one minted later would attach retroactively. A rare piece — an engineer
-   explaining why they removed something already designed.
-2. **`verifyEnvelope` and the `unverifiable` list.** Why a signature asserts "I
+1. **The soulbound token that was specified and dropped.** Identity is
+   content-addressed, so a token cannot confer existence, and one minted later
+   would attach retroactively to entities that lived without it. An engineer
+   explaining why they removed something already designed — rare, and squarely
+   about refusing to assert more than the record supports.
+2. **`verifyEnvelope` and the `unverifiable` list.** Why a signature attests "I
    observed this" and not "this is true", and why nearly everyone conflates the
-   two.
+   two. The clearest statement of the whole stance.
 3. **Exploitative behavior in agent traces**, from `llm-benchmark/evaluator`.
-   Agents that "completed" a task by routing around its condition. Literally a
-   case file about a machine lying.
+   Agents that "completed" a task by routing around its condition — where the
+   outcome attests to success and the trace attests otherwise.
 
 Entries are markdown in-repo, rendered into the terminal as scrollable output.
 RSS is served — peers read through readers.
@@ -311,5 +348,10 @@ Written test-first, per the existing workflow.
    is the author's call, made stanza by stanza in `districts.toml`.
    `house` is included by decision — a living person on the map reads better
    than another AI project.
-2. **The positioning line.** The tagline in the mockup is a placeholder. The
-   final wording is the author's.
+2. **The positioning line.** The tagline is the author's to write.
+3. **The statement on `/me`.** The frame is stated openly by decision. Its
+   wording is the author's and is deliberately not drafted in this spec.
+4. **Pages or tmux windows.** The prototype renders `/`, `/log` and `/me` as
+   tmux windows (`0:map 1:log 2:me`) on the status line rather than as routes,
+   which removes navigation from the page entirely. Proposed, pending the
+   author's call; if adopted, the Pages table becomes a window table.

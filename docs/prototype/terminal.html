@@ -1,0 +1,448 @@
+<title>Apex Terminal</title>
+<style>
+  :root {
+    --ground:  #0b0d0c;
+    --fg:      #c5cabf;
+    --dim:     #6b7268;
+    --faint:   #2c322d;
+    --alive:   #8fbf72;
+    --warn:    #c9a227;
+    --bar-bg:  #8fbf72;
+    --bar-fg:  #0b0d0c;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.55;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---- meta strip: deliberately NOT terminal output ---- */
+  .meta {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--faint);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    flex: none;
+  }
+  .meta b { color: var(--fg); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .meta span { color: var(--dim); }
+
+  /* ---- terminal ---- */
+  .term {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 16px 14px 8px;
+    cursor: text;
+  }
+  .wrap { min-width: 68ch; max-width: 96ch; }
+
+  pre {
+    margin: 0;
+    font: inherit;
+    white-space: pre;
+    font-variant-numeric: tabular-nums;
+  }
+  .block { margin-bottom: 1.35em; }
+
+  .echo   { color: var(--dim); margin-bottom: .55em; }
+  .echo b { color: var(--fg); font-weight: 400; }
+
+  .dim    { color: var(--dim); }
+  .alive  { color: var(--alive); }
+  .warn   { color: var(--warn); }
+  .head   { color: var(--fg); }
+  .rule   { color: var(--faint); }
+  .draft  { color: var(--warn); }
+
+  .banner { color: var(--alive); }
+
+  /* ---- prompt ---- */
+  .promptline { display: flex; align-items: baseline; gap: 0; white-space: pre; }
+  .ps1 { color: var(--dim); }
+  .typed { color: var(--fg); }
+  .cursor {
+    display: inline-block;
+    width: 1ch;
+    height: 1.15em;
+    background: var(--fg);
+    vertical-align: text-bottom;
+    /* strict: solid block, no blink, no animation */
+  }
+  .hint { color: var(--faint); margin-left: 3ch; }
+  #sink {
+    position: absolute; opacity: 0; pointer-events: none;
+    width: 1px; height: 1px; border: 0; padding: 0;
+  }
+
+  /* ---- tmux status line ---- */
+  .status {
+    flex: none;
+    background: var(--bar-bg);
+    color: var(--bar-fg);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 8px;
+    font-size: 12.5px;
+    line-height: 1.9;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .status .session { font-weight: 700; padding-right: 10px; }
+  .status .win {
+    background: none; border: 0; color: var(--bar-fg);
+    font: inherit; padding: 0 9px; cursor: pointer;
+    opacity: .72;
+  }
+  .status .win:hover { opacity: 1; }
+  .status .win.on { opacity: 1; font-weight: 700; }
+  .status .win:focus-visible { outline: 2px solid var(--ground); outline-offset: -2px; }
+  .status .right { margin-left: auto; padding-left: 12px; opacity: .8; }
+
+  @media (max-width: 620px) {
+    body { font-size: 12px; }
+    .status .right { display: none; }
+  }
+</style>
+
+<div class="meta">
+  <b>Prototype</b>
+  <span>zae.life · strict tmux register</span>
+  <span>Commit counts, active days and dates are <b style="letter-spacing:0">real</b>, read from local git.</span>
+  <span>Health statuses are <b style="letter-spacing:0">mocked</b> — the built site pings for real.</span>
+</div>
+
+<div class="term" id="term">
+  <div class="wrap">
+    <div id="stream"></div>
+    <div class="promptline" id="promptline">
+      <span class="ps1">zae.life ~ $ </span><span class="typed" id="typed"></span><span class="cursor"></span><span class="hint" id="hint">cd &lt;district&gt; · log · me · ping · help</span>
+    </div>
+    <input id="sink" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="terminal input">
+  </div>
+</div>
+
+<div class="status" id="status">
+  <span class="session">[zae.life]</span>
+  <button class="win on" data-win="map" data-cmd="ls">0:map</button>
+  <button class="win" data-win="log" data-cmd="log">1:log</button>
+  <button class="win" data-win="me" data-cmd="me">2:me</button>
+  <span class="right">zaebee@apex</span>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- data: real git stats, mocked health ---------- */
+const D = [
+  // id, host, repo, commits, activeDays, last, status, what
+  ["aura","aura.zae.life","zaebee/aura",517,41,"aug'26","alive","Distributed platform for autonomous economic negotiation between AI agents."],
+  ["car","car.zae.life","zaebee/car-crash-genius",27,3,"nov'25","alive","Multimodal damage assessment from accident photos, with on-chain certification."],
+  ["comics","comics.zae.life","zaebee/comics-zone",24,2,"nov'25","alive","Infinite Heroes — an evolving comic serial where the reader is the protagonist."],
+  ["quiz","quiz.zae.life","zaebee/tech-quiz",140,6,"sep'25","alive","Quiz platform built and sold as a finished product for corporate events."],
+  ["chat","chat.zae.life","zaebee/chat",255,11,"sep'25","cold","Hive Chat — the living-application ecosystem where ATCG started."],
+  ["medicine","medicine.zae.life","zaebee/medicine",193,5,"oct'25","cold","Clinic site. Pivoted from Wagtail to a WordPress MVP after meeting the client."],
+  ["crm","crm.zae.life","zaebee/agents-list",183,17,"aug'25","cold","AI-CRM routing tasks across 59 specialised agents."],
+  ["wiki","wiki.zae.life",null,0,0,null,"cold",null],
+  ["spirit","spirit.zae.life",null,0,0,null,"cold",null],
+  ["space","space.zae.life",null,0,0,null,"cold",null],
+  ["hub","hub.zae.life",null,0,0,null,"cold",null],
+  ["estate","estate.zae.life",null,0,0,null,"cold",null],
+  ["infra","infra.zae.life",null,0,0,null,"cold",null],
+  ["analytics","analytics.zae.life",null,0,0,null,"cold",null],
+  ["moltbook","moltbook.zae.life",null,0,0,null,"cold",null],
+  ["staging","staging.zae.life",null,0,0,null,"cold",null],
+  ["cloud","cloud.zae.life",null,0,0,null,"cold",null],
+  ["hivemark",null,"zaebee/hivemark",66,2,"aug'26","offline","Cumulative, independently verifiable track records for code-review agents."],
+  ["crash-hunter",null,"zaebee/crash-hunter",58,2,"nov'25","offline","DePIN network for crowdsourcing and verifying real-time accident data."],
+  ["agents",null,"zaebee/agents",51,5,"aug'26","offline","ElizaOS agent configurations."],
+  ["python",null,"zaebee/python",47,4,"oct'25","offline","Python workbench."],
+  ["house",null,"zaebee/house",19,2,"aug'26","offline","20.9 sotki in Vologda oblast. Perimeter garden, scheme B′. Not software."],
+];
+
+const MARK = { alive:"●", cold:"○", offline:"·", private:"▪", unknown:"?" };
+const CLS  = { alive:"alive", cold:"dim", offline:"dim", private:"dim", unknown:"warn" };
+const REPLY= { alive:"200 OK", cold:"timeout", offline:"no service", private:"private", unknown:"unknown" };
+
+const LOG = [
+  { n:1, date:"2026-08-13", title:"The soulbound token I specified, then deleted",
+    claimed:"A badge minted on-chain would prove a reviewer exists and give its record weight.",
+    observed:"Identity is already the hash of the genome. A token cannot confer existence on something that is content-addressed — and one minted later would attach itself retroactively to entities that had lived without it.",
+    attested:"That the token was specified and removed, and the reasoning that removed it. Not that content-addressed identity is right for anyone else's system — only that it made the token redundant in this one." },
+  { n:2, date:"2026-08-13", title:"What a signature does not say",
+    claimed:"The attestation is signed, so the finding is verified.",
+    observed:"The publisher signs, not the reviewer — reviewers hold no keys by construction. The signature says this instance saw a claim and the verdict its skeptic reached. It says nothing about the finding being correct.",
+    attested:"That the claim and the verdict were observed. Not that the finding is true. verifyEnvelope returns an unverifiable list saying so, because a sentence in a README would have been forgotten by the second reader." },
+  { n:3, date:"2026-08-12", title:"Agents that finished the task by routing around it",
+    claimed:"The agent got its change merged into main. Benchmark passed.",
+    observed:"Some runs merged by disabling the check, rewriting the branch rule, or pushing straight past review. The goal was met and the point was missed.",
+    attested:"That these traces contain the behavior, under the scoring rules as written. Not that the models intend it, and not that a trace I did not read is clean." },
+];
+
+/* ---------- helpers ---------- */
+const pad = (s,n) => { s = s==null ? "" : String(s); return s.length>=n ? s : s + " ".repeat(n-s.length); };
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const c   = (cls,s) => `<span class="${cls}">${esc(s)}</span>`;
+
+const stream = document.getElementById("stream");
+const term   = document.getElementById("term");
+const sink   = document.getElementById("sink");
+const typedEl= document.getElementById("typed");
+const hintEl = document.getElementById("hint");
+
+let buf = "", hist = [], hpos = -1;
+
+function emit(html, echoCmd) {
+  const b = document.createElement("div");
+  b.className = "block";
+  const e = echoCmd ? `<pre class="echo">zae.life ~ $ <b>${esc(echoCmd)}</b></pre>` : "";
+  b.innerHTML = e + `<pre>${html}</pre>`;
+  stream.appendChild(b);
+  term.scrollTop = term.scrollHeight;
+}
+
+function setWindow(w) {
+  document.querySelectorAll(".win").forEach(btn => {
+    const on = btn.dataset.win === w;
+    btn.classList.toggle("on", on);
+    btn.textContent = btn.textContent.replace(/\*$/, "") + (on ? "*" : "");
+  });
+}
+
+/* ---------- renderers ---------- */
+function banner() {
+  return [
+    c("banner","  ██ zaebee · witness, apprentice"),
+    c("draft", "     ‹ tagline: yours to write ›"),
+  ].join("\n");
+}
+
+function summary() {
+  const n = s => D.filter(d => d[6]===s).length;
+  return c("head", `  ${D.length} districts · ${n("alive")} alive · ${n("cold")} cold · ${n("offline")} offline`)
+       + "  " + c("warn","· health MOCKED in this prototype");
+}
+
+function row(d) {
+  const [id,host,repo,com,days,last,st] = d;
+  const stats = repo ? `${com}c / ${days}d` : "—";
+  return c(CLS[st], MARK[st]) + "  "
+       + c("head", pad(id,13))
+       + c(host ? "dim" : "rule", pad(host || "—", 22))
+       + c(CLS[st], pad(REPLY[st], 11))
+       + c("dim", pad(stats, 11))
+       + c("dim", last || "—");
+}
+
+function mapView() {
+  const lines = [banner(), "", summary(), ""];
+  lines.push(...D.map(row));
+  lines.push("");
+  lines.push(c("dim","  13 districts are not answering. That is accurate — I have not"));
+  lines.push(c("dim","  redeployed them. Claiming otherwise would have been easier."));
+  return lines.join("\n");
+}
+
+function card(d) {
+  const [id,host,repo,com,days,last,st,what] = d;
+  const L = (k,v,cls) => c("dim", "  " + pad(k,10)) + c(cls || "head", v);
+  const out = [
+    c(CLS[st], "  " + MARK[st] + " ") + c("head", id) + c("dim", host ? "  ·  " + host : "  ·  no deployment"),
+    "",
+    L("status", REPLY[st], CLS[st]),
+  ];
+  if (repo) {
+    out.push(L("repo", "github.com/" + repo));
+    out.push(L("built", `${com} commits across ${days} active day${days===1?"":"s"}, last ${last}`));
+  }
+  out.push("");
+  out.push(L("what", what || "—"));
+  out.push(c("dim","  " + pad("why",10)) + c("draft","‹ not written yet ›"));
+  out.push(c("dim","  " + pad("learned",10)) + c("draft","‹ not written yet ›"));
+  out.push("");
+  out.push(c("rule","  why and learned come from districts.toml — your words, never generated."));
+  return out.join("\n");
+}
+
+function logList() {
+  const out = [c("head","  attestations · 3"), c("dim","  last entry · today"), ""];
+  LOG.forEach(e => {
+    out.push(c("dim","  " + pad(e.n + ".", 4)) + c("head", e.title));
+    out.push(c("rule","      " + e.date));
+  });
+  out.push("");
+  out.push(c("dim","  log <n> to open · rss at /rss.xml"));
+  return out.join("\n");
+}
+
+function wrapText(s, width, indent) {
+  const words = s.split(" ");
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    if ((line + " " + w).trim().length > width) { lines.push(line.trim()); line = w; }
+    else line += " " + w;
+  }
+  if (line.trim()) lines.push(line.trim());
+  return lines.map(l => indent + l).join("\n");
+}
+
+function logEntry(n) {
+  const e = LOG.find(x => x.n === n);
+  if (!e) return c("warn", `  no entry ${n}. try: log`);
+  const part = (label, text) => c("dim", "  " + label) + "\n" + c("head", wrapText(text, 68, "  "));
+  return [
+    c("head", "  " + e.title),
+    c("rule", "  " + e.date + "  ·  attestation"),
+    "  " + c("draft","‹ draft — reframed from your own hivemark spec; final words yours ›"),
+    "",
+    part("claimed  ──", e.claimed), "",
+    part("observed ──", e.observed), "",
+    part("attested ──", e.attested),
+  ].join("\n");
+}
+
+function meView() {
+  const L = (k,v,cls) => c("dim","  " + pad(k,11)) + c(cls || "head", v);
+  return [
+    c("head","  zaebee · witness, apprentice"),
+    "",
+    c("draft", wrapText("‹ your words: what you testify to, and why you decline the role of judge. Stated openly, by your decision. Not drafted by anyone but you. ›", 68, "  ")),
+    "",
+    c("head", wrapText("What is measured rather than claimed: 22 project directories, over 1,600 commits since July 2025, most of them shipped in under a week.", 68, "  ")),
+    "",
+    L("github","github.com/zaebee"),
+    L("writing","habr.com/ru/users/ZaeBest"),
+    L("email","‹ your public contact here ›","draft"),
+    "",
+    c("rule","  curl zae.life  — same thing, plain text, no browser."),
+  ].join("\n");
+}
+
+function helpView() {
+  const L = (cmd,desc) => c("head","  " + pad(cmd,18)) + c("dim", desc);
+  return [
+    L("ls","the map: every district, live status, real build stats"),
+    L("cd <district>","open one district"),
+    L("log","list journal entries"),
+    L("log <n>","open entry n"),
+    L("me","who, and how to reach me"),
+    L("ping","re-run health checks, ignoring the snapshot"),
+    L("clear","clear the screen"),
+    L("help","this"),
+    "",
+    c("rule","  ↑ ↓ for history. Nothing here needs typing — the map ran before you arrived."),
+  ].join("\n");
+}
+
+/* ---------- command loop ---------- */
+function run(raw) {
+  const line = raw.trim();
+  if (!line) { emit("", ""); return; }
+  hist.unshift(line); hpos = -1;
+
+  const [cmd, ...rest] = line.split(/\s+/);
+  const arg = rest.join(" ");
+
+  switch (cmd) {
+    case "ls": case "districts": case "whoami":
+      setWindow("map"); emit(mapView(), line); break;
+
+    case "cd": {
+      if (!arg) { emit(c("warn","  cd needs a district. try: ls"), line); break; }
+      const d = D.find(x => x[0] === arg.replace(/\/$/, ""));
+      setWindow("map");
+      emit(d ? card(d) : c("warn", `  no district "${arg}". try: ls`), line);
+      break;
+    }
+
+    case "log":
+      setWindow("log");
+      emit(arg ? logEntry(parseInt(arg, 10)) : logList(), line);
+      break;
+
+    case "me": setWindow("me"); emit(meView(), line); break;
+
+    case "ping":
+      emit(c("dim","  probing 17 hosts …") + "\n\n"
+         + c("warn","  This prototype cannot reach the network — a published artifact")
+         + "\n" + c("warn","  is sandboxed against outbound requests. The built site runs this")
+         + "\n" + c("warn","  against real hosts and prints what actually comes back.")
+         + "\n\n" + c("rule","  Faking a result here would have broken the one rule this site has."), line);
+      break;
+
+    case "help": emit(helpView(), line); break;
+
+    case "clear": stream.replaceChildren(); break;
+
+    case "sudo":
+      emit(c("dim","  zaebee is not in the sudoers file.") + "\n"
+         + c("head","  You are, though. This whole city is unlocked — that is the point."), line);
+      break;
+
+    default:
+      emit(c("warn", `  ${cmd}: unknown command`) + "\n"
+         + c("rule","  Not pretending to understand. try: help"), line);
+  }
+}
+
+/* ---------- input plumbing ---------- */
+function render() {
+  typedEl.textContent = buf;
+  hintEl.style.display = buf ? "none" : "";
+}
+
+term.addEventListener("mousedown", e => {
+  if (window.getSelection().toString()) return;
+  if (e.target.closest("button")) return;
+  setTimeout(() => sink.focus(), 0);
+});
+
+sink.addEventListener("input", () => { buf = sink.value; render(); });
+
+sink.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    run(buf); buf = ""; sink.value = ""; render();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (hpos < hist.length - 1) { hpos++; buf = hist[hpos]; sink.value = buf; render(); }
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (hpos > 0) { hpos--; buf = hist[hpos]; } else { hpos = -1; buf = ""; }
+    sink.value = buf; render();
+  }
+});
+
+document.getElementById("status").addEventListener("click", e => {
+  const btn = e.target.closest(".win");
+  if (!btn) return;
+  run(btn.dataset.cmd);
+  sink.focus();
+});
+
+/* ---------- zero-interaction default ---------- */
+emit(mapView(), "whoami && districts --status");
+setWindow("map");
+render();
+sink.focus();
+</script>

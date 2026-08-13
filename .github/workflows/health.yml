@@ -27,6 +27,10 @@ jobs:
       # reports "could not observe" instead of "everything is down".
       - run: bun run health
 
+      # Its own step: an unreadable record must not stop the probe from being
+      # committed. This one going red leaves health.json landing as usual.
+      - run: bun run history
+
       # data/districts.toml is never staged. Machines own the numbers, the
       # author owns the words. Pushing this commit is also what redeploys the
       # site, since the snapshot is baked in at build time.

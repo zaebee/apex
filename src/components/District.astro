@@ -1,6 +1,12 @@
 ---
 import type { District } from "../lib/districts";
-import { continuationIndent, districtCells, districtLink, observedFor } from "../lib/format";
+import {
+  continuationIndent,
+  districtCells,
+  districtLink,
+  observedFor,
+  secondLineFor,
+} from "../lib/format";
 import { freshness } from "../lib/freshness";
 import { TONE } from "../lib/status";
 
@@ -14,7 +20,7 @@ const c = districtCells(d);
 // district: what a living one is, or how long a silent one has been silent.
 // They never compete — a district is one or the other.
 const watched = observedFor(d);
-const secondLine = d.status === "alive" ? (d.what ?? watched) : watched;
+const secondLine = secondLineFor(d);
 
 // <details> so the card opens by click and by keyboard with no JavaScript at
 // all. The command layer sets `open` on this same element, which is why cd and

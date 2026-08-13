@@ -256,6 +256,14 @@ a:focus-visible,
     white-space: pre-wrap;
   }
 
+  /* max-content sizes the row to its longest unwrapped line, which makes
+     pre-wrap on the second line inert — the containing block is already as
+     wide as the text it was meant to wrap. The columns keep their hard pre
+     because they live in their own spans. */
+  .row {
+    width: 100%;
+  }
+
   .hint {
     display: none;
   }

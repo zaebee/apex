@@ -42,9 +42,33 @@ export function districtLink(d: District): string | null {
 }
 
 const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const DAY_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "2-digit",
+});
+
+/** The year appears once the streak is old enough that leaving it out would
+ *  read as this year. Districts staying cold for years is this site's premise,
+ *  so "since 20 Aug" on a thirteen-month silence would understate it as two
+ *  weeks — a smaller claim than the truth, but still not the truth. */
+function sinceLabel(since: string, now: Date): string {
+  const d = new Date(since);
+  const months = (now.getTime() - d.getTime()) / (30 * 86_400_000);
+  return (months > 11 ? DAY_MONTH_YEAR : DAY_MONTH).format(d);
+}
 
 const OBSERVED_VERB: Record<ObservedState, string> = {
   alive: "answering",
+  cold: "no answer",
+  unknown: "not observed",
+};
+
+/** Present tense only when the current check saw it. Under a blind run the row
+ *  says "unknown" in the status column, and a second line reading "answering"
+ *  beneath it would assert something this run did not observe. */
+const OBSERVED_VERB_PAST: Record<ObservedState, string> = {
+  alive: "answered",
   cold: "no answer",
   unknown: "not observed",
 };
@@ -63,12 +87,25 @@ function gapsClause(gaps: number): string {
  *
  *  Returns null below two checks: "no answer in 1 check" is the status column
  *  again, in more words. */
-export function observedFor(d: District): string | null {
+export function observedFor(d: District, now: Date = new Date()): string | null {
   const o = d.observed;
   if (!o || o.checks < 2) return null;
 
-  const since = DAY_MONTH.format(new Date(o.since));
-  return `${OBSERVED_VERB[o.state]} in ${o.checks} checks since ${since}${gapsClause(o.gaps)}`;
+  // the record describes what was seen; the current status decides whether it
+  // may be spoken of in the present
+  const current = d.status === o.state;
+  const verb = current ? OBSERVED_VERB[o.state] : OBSERVED_VERB_PAST[o.state];
+
+  return `${verb} in ${o.checks} checks since ${sinceLabel(o.since, now)}${gapsClause(o.gaps)}`;
+}
+
+/** The one second line a district gets, wherever it is rendered: a living
+ *  district says what it is, a silent one says how long. The page and the
+ *  plain-text branch call this, so they cannot testify differently about the
+ *  same district — which they did when each decided for itself. */
+export function secondLineFor(d: District, now: Date = new Date()): string | null {
+  const watched = observedFor(d, now);
+  return d.status === "alive" ? (d.what ?? watched) : watched;
 }
 
 export interface DistrictCells {

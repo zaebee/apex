@@ -100,3 +100,46 @@ test("corrupt prior state is discarded rather than carried", () => {
     gaps: 0,
   });
 });
+
+// --- what the fold must refuse to assert ---
+
+test("a host absent from a sighted run accrues a gap, not a pause", () => {
+  let h = updateHistory(empty, snap({ "a.zae.life": { ok: false } }), at("2026-08-13T10:00:00Z"));
+  // dropped from the allowlist for two runs, then restored
+  h = updateHistory(h, snap({ "b.zae.life": { ok: true } }), at("2026-09-13T10:00:00Z"));
+  h = updateHistory(h, snap({ "b.zae.life": { ok: true } }), at("2026-10-13T10:00:00Z"));
+  h = updateHistory(h, snap({ "a.zae.life": { ok: false } }), at("2027-02-13T10:00:00Z"));
+
+  const a = h.hosts["a.zae.life"];
+  expect(a?.checks).toBe(2);
+  // the months nobody watched are holes, and the line has to say so
+  expect(a?.gaps).toBe(2);
+});
+
+test("a since stamped by a wrong clock is refused rather than carried forever", () => {
+  const future = new Date(Date.now() + 400 * 86_400_000).toISOString();
+  const poisoned = {
+    updatedAt: "x",
+    hosts: { "a.zae.life": { state: "cold", since: future, checks: 3, gaps: 0 } },
+  } as unknown as History;
+  const h = updateHistory(poisoned, snap({ "a.zae.life": { ok: false } }), new Date());
+  expect(Date.parse(h.hosts["a.zae.life"]?.since ?? "")).toBeLessThanOrEqual(Date.now());
+  expect(h.hosts["a.zae.life"]?.checks).toBe(1);
+});
+
+test("counts that are not whole non-negative numbers are refused", () => {
+  for (const bad of [-5, 2.5, Number.POSITIVE_INFINITY, Number.NaN]) {
+    const poisoned = {
+      updatedAt: "x",
+      hosts: {
+        "a.zae.life": { state: "cold", since: "2026-08-13T10:00:00.000Z", checks: bad, gaps: 0 },
+      },
+    } as unknown as History;
+    const h = updateHistory(
+      poisoned,
+      snap({ "a.zae.life": { ok: false } }),
+      at("2026-08-14T10:00:00Z"),
+    );
+    expect(h.hosts["a.zae.life"]?.checks).toBe(1);
+  }
+});

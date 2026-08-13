@@ -30,7 +30,7 @@ export const EMPTY_HISTORY: History = { updatedAt: "", hosts: {} };
  *  trusted — the same discipline the snapshot gets. Anything malformed is
  *  discarded, which restarts that host's record at this observation instead of
  *  carrying a number nobody can account for. */
-function takeRecord(raw: unknown): HostRecord | null {
+function takeRecord(raw: unknown, now: Date): HostRecord | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
 
@@ -41,8 +41,16 @@ function takeRecord(raw: unknown): HostRecord | null {
   if (typeof since !== "string") return null;
   const t = Date.parse(since);
   if (Number.isNaN(t) || new Date(t).toISOString() !== since) return null;
+  // A single run with a wrong clock would otherwise stamp a start date after
+  // the checks it counts, and keep it — `since` only resets on a state change.
+  if (t > now.getTime()) return null;
 
-  if (typeof r.checks !== "number" || typeof r.gaps !== "number") return null;
+  // Counts of observations: whole, non-negative, finite. `typeof === "number"`
+  // admits -5, 2.5 and Infinity — JSON carries 1e999 as Infinity, which would
+  // render "in Infinity checks".
+  const whole = (v: unknown): v is number =>
+    typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+  if (!whole(r.checks) || !whole(r.gaps)) return null;
 
   return { state, since, checks: r.checks, gaps: r.gaps };
 }
@@ -62,11 +70,22 @@ export function updateHistory(previous: History, snapshot: HealthSnapshot, now: 
   // carried forward, including hosts no longer on the allowlist: a record of
   // what was observed does not stop being true because the map moved on
   for (const [host, raw] of Object.entries(previous?.hosts ?? {})) {
-    const kept = takeRecord(raw);
+    const kept = takeRecord(raw, now);
     if (kept) hosts[host] = kept;
   }
 
   const blind = snapshot.ok !== true;
+  const seen = new Set(Object.keys(snapshot?.entries ?? {}));
+
+  // A host carried forward but not in this snapshot — dropped from the
+  // allowlist, or added back later — was not observed either. Without this a
+  // record could resume after six months and still read "3 checks, no gaps":
+  // an unbroken watch nobody kept.
+  if (!blind) {
+    for (const [host, rec] of Object.entries(hosts)) {
+      if (!seen.has(host)) hosts[host] = { ...rec, gaps: rec.gaps + 1 };
+    }
+  }
 
   for (const [host, entry] of Object.entries(snapshot?.entries ?? {})) {
     const prior = hosts[host];

@@ -61,14 +61,14 @@ export function updateHistory(previous: History, snapshot: HealthSnapshot, now: 
 
   // carried forward, including hosts no longer on the allowlist: a record of
   // what was observed does not stop being true because the map moved on
-  for (const [host, raw] of Object.entries(previous.hosts ?? {})) {
+  for (const [host, raw] of Object.entries(previous?.hosts ?? {})) {
     const kept = takeRecord(raw);
     if (kept) hosts[host] = kept;
   }
 
   const blind = snapshot.ok !== true;
 
-  for (const [host, entry] of Object.entries(snapshot.entries ?? {})) {
+  for (const [host, entry] of Object.entries(snapshot?.entries ?? {})) {
     const prior = hosts[host];
 
     if (blind) {

@@ -1,5 +1,6 @@
 import type { District } from "./districts";
 import { freshness } from "./freshness";
+import type { ObservedState } from "./history";
 import { type HealthSnapshot, MARK, replyFor, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
@@ -42,6 +43,17 @@ export function districtLink(d: District): string | null {
 
 const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
+const OBSERVED_VERB: Record<ObservedState, string> = {
+  alive: "answering",
+  cold: "no answer",
+  unknown: "not observed",
+};
+
+function gapsClause(gaps: number): string {
+  if (gaps <= 0) return "";
+  return `, ${gaps} ${gaps === 1 ? "gap" : "gaps"}`;
+}
+
 /** What the record supports, said as narrowly as it is true.
  *
  *  Not "silent since sep'25". `chat` last saw a commit in September 2025, but
@@ -55,12 +67,8 @@ export function observedFor(d: District): string | null {
   const o = d.observed;
   if (!o || o.checks < 2) return null;
 
-  const verb =
-    o.state === "alive" ? "answering" : o.state === "cold" ? "no answer" : "not observed";
   const since = DAY_MONTH.format(new Date(o.since));
-  const holes = o.gaps > 0 ? `, ${o.gaps} ${o.gaps === 1 ? "gap" : "gaps"}` : "";
-
-  return `${verb} in ${o.checks} checks since ${since}${holes}`;
+  return `${OBSERVED_VERB[o.state]} in ${o.checks} checks since ${since}${gapsClause(o.gaps)}`;
 }
 
 export interface DistrictCells {

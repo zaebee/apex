@@ -1,7 +1,16 @@
 import type { APIRoute } from "astro";
 import { loadDistricts } from "../lib/districts";
 import { districtLink } from "../lib/format";
-import { replyFor } from "../lib/status";
+import { type HealthSnapshot, replyFor } from "../lib/status";
+
+/** Mirrors what the page says. Claiming "none on record" while /health.json,
+ *  linked from this same file, plainly carries a lastOkAt would have the two
+ *  machine-readable surfaces disagreeing about whether an observation exists. */
+function describeHealth(health: HealthSnapshot | null): string {
+  if (health?.ok === true) return health.checkedAt ?? "none on record";
+  if (health?.lastOkAt) return `current check failed; last successful check ${health.lastOkAt}`;
+  return "none on record";
+}
 
 // A proposed convention with uneven adoption and no provider commitment. It
 // ships because it costs one endpoint over data already merged, not because it
@@ -10,12 +19,7 @@ import { replyFor } from "../lib/status";
 export const GET: APIRoute = async () => {
   const { districts, health } = await loadDistricts();
 
-  const healthLine =
-    health?.ok === true
-      ? (health.checkedAt ?? "none on record")
-      : health?.lastOkAt
-        ? `current check failed; last successful check ${health.lastOkAt}`
-        : "none on record";
+  const healthLine = describeHealth(health);
 
   const lines = [
     "# zae.life",
@@ -24,9 +28,6 @@ export const GET: APIRoute = async () => {
     "> districts that answer are marked alive, districts that do not are marked cold,",
     "> and state that was never observed is marked unknown rather than guessed.",
     "",
-    // mirrors what the page says. Claiming "none on record" while /health.json,
-    // linked below, plainly carries a lastOkAt would have the two machine-readable
-    // surfaces disagreeing about whether an observation exists.
     `Health snapshot: ${healthLine}`,
     "",
     "## Districts",

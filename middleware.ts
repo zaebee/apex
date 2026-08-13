@@ -25,7 +25,13 @@ export default async function middleware(request: Request): Promise<Response | u
   url.search = "";
 
   try {
-    const res = await fetch(url, { headers: { "user-agent": "zae.life middleware" } });
+    const res = await fetch(url, {
+      headers: { "user-agent": "zae.life middleware" },
+      // this runs on the critical path of every `/` request from a terminal, so
+      // a cold start or a network blip must not hold the response open — the
+      // same discipline the island's ping fetch already carries
+      signal: AbortSignal.timeout(2000),
+    });
     // Only a good response is forwarded. Relabelling a 404 page as text/plain
     // would hand the terminal audience an error dressed as the map.
     if (res.ok) {

@@ -1,0 +1,66 @@
+---
+import { loadDistricts } from "../lib/districts";
+import { continuationIndent, districtCells, summaryLines } from "../lib/format";
+import { freshness } from "../lib/freshness";
+import { TONE } from "../lib/status";
+
+const now = new Date();
+const { districts, health } = await loadDistricts();
+
+// summaryLines takes the snapshot, not only its age: a check can fail and still
+// stamp itself with the current time, and freshness alone would call that fresh
+const f = freshness(health?.checkedAt ?? null, now);
+const [counts, age, legend] = summaryLines(districts, health, now);
+
+const observed = health?.ok === true;
+const cold = districts.filter((d) => d.status === "cold").length;
+
+// The closing line asserts a count. It may only appear when the check that
+// produced that count actually succeeded — with a failed snapshot no district
+// resolves to cold, and "0 districts are not answering. That is accurate" would
+// be the page testifying to something nobody observed.
+const sayCold = observed && cold > 0;
+
+// Built here rather than in the template: text interleaved with expressions
+// across source lines inherits the template's own newlines and indentation, and
+// this block sits inside a <pre>.
+const coldLine = [
+  `  ${cold === 1 ? "One district is" : `${cold} districts are`} not answering. That is`,
+  `  accurate — I have not redeployed ${cold === 1 ? "it" : "them"}. Claiming otherwise`,
+  "  would have been easier.",
+].join("\n");
+---
+
+<pre class="echo">zae.life ~ $ <b>whoami &amp;&amp; districts --status</b></pre>
+<pre class="prose">  <a href="/me">zaebee</a><span class="dim"> · witness, apprentice</span>
+<span class="warn">  ‹ tagline: yours to write ›</span>
+
+  {counts}
+<span class={observed && !f.stale ? "dim" : "warn"}>  {age}</span>
+<span class="dim">  {legend}</span>
+</pre>
+
+<div class="rows">
+  {
+    districts.map((d) => {
+      const c = districtCells(d);
+      return (
+        <button type="button" class="row" data-act="cd" data-id={d.id}>
+          <span class={TONE[d.status]}>{c.mark}</span>
+          {c.id}
+          <span class="dim host-col">{c.host}</span>
+          <span class={TONE[d.status]}>{c.reply}</span>
+          <span class="dim">
+            {c.stats}
+            {c.last}
+          </span>
+          {d.status === "alive" && d.what ? (
+            <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span>
+          ) : null}
+        </button>
+      );
+    })
+  }
+</div>
+
+{sayCold && <pre class="prose"><span class="dim">{coldLine}</span></pre>}

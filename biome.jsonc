@@ -1,0 +1,35 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      // build and tool output. Bare directory names, no trailing /** — since
+      // biome 2.2.0 the suffix is redundant and lint/suspicious/useBiomeIgnoreFolder
+      // flags it. This file is .jsonc because biome accepts comments only there.
+      "!dist",
+      "!.astro",
+      "!.vercel",
+      "!coverage",
+      "!node_modules",
+      // machine-written, and reformatting them would produce a diff on every run
+      "!data/stats.json",
+      "!data/health.json",
+      // the design prototype: an artifact, not shipped source, must not gate CI
+      "!docs/prototype",
+      // biome parses only the frontmatter of an .astro file, not the template,
+      // so anything used solely in markup reads as an unused import. `astro
+      // check` covers these files properly and runs in the typecheck script.
+      "!**/*.astro"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": { "preset": "recommended" }
+  }
+}

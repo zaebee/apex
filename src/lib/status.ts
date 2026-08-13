@@ -33,13 +33,25 @@ export const MARK: Record<Status, string> = {
   unknown: "?",
 };
 
-export const REPLY: Record<Status, string> = {
-  alive: "200 OK",
-  cold: "timeout",
-  offline: "no service",
-  private: "private",
-  unknown: "unknown",
-};
+/** What the check actually got back. A constant per status would testify past
+ *  observation: a host answering 502 is not a timeout, and printing "timeout"
+ *  over it names a failure mode nobody saw. When there is a code, the code is
+ *  the testimony; when the connection never completed, there is no code and
+ *  "no answer" is all that can honestly be said. */
+export function replyFor(status: Status, code: number | null): string {
+  switch (status) {
+    case "alive":
+      return code === null ? "ok" : `${code} OK`;
+    case "cold":
+      return code === null ? "no answer" : String(code);
+    case "offline":
+      return "no service";
+    case "private":
+      return "private";
+    case "unknown":
+      return "unknown";
+  }
+}
 
 /** Amber belongs to epistemic uncertainty alone. A cold district is a fact,
  *  not a warning, and colouring it as a problem would editorialise the census. */

@@ -1,0 +1,51 @@
+---
+import StatusLine from "../components/StatusLine.astro";
+import "../styles/terminal.css";
+
+interface Props {
+  title: string;
+  description: string;
+  current: "map" | "log" | "me";
+}
+const { title, description, current } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="alternate" type="application/rss+xml" title="zae.life attestations" href="/rss.xml" />
+  </head>
+  <body>
+    <main class="term" id="term">
+      <div class="wrap">
+        <div id="stream"><slot /></div>
+        <div class="promptline" id="promptline">
+          <span class="ps1">zae.life ~ $ </span><span class="typed" id="typed"></span><span
+            class="cursor"></span><span class="hint" id="hint"
+            >click anything, or type — cd &lt;district&gt; · log · me · help</span
+          >
+        </div>
+        <!-- tabindex=-1: a 1x1 transparent input in the tab order makes focus
+             vanish for a keyboard user. The command island focuses it
+             programmatically; it never needs to be tab-reachable. -->
+        <input
+          id="sink"
+          tabindex="-1"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="terminal input"
+        />
+      </div>
+    </main>
+    <StatusLine current={current} />
+    <script>
+      import "../scripts/terminal.ts";
+    </script>
+  </body>
+</html>

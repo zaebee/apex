@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
 import type { District } from "../src/lib/districts";
-import { districtRow, LEGEND, pad, shortMonth, summaryLines } from "../src/lib/format";
+import {
+  districtCells,
+  districtRow,
+  LEGEND,
+  pad,
+  shortMonth,
+  summaryLines,
+} from "../src/lib/format";
 import type { HealthSnapshot } from "../src/lib/status";
 
 const d = (over: Partial<District> = {}): District => ({
@@ -12,6 +19,7 @@ const d = (over: Partial<District> = {}): District => ({
   why: null,
   learned: null,
   status: "alive",
+  code: 200,
   stats: { commits: 517, activeDays: 41, first: "2026-01-24", last: "2026-08-13" },
   ...over,
 });
@@ -43,10 +51,31 @@ test("a narrow row drops the host and fits a 375px screen", () => {
   expect(row.length).toBeLessThanOrEqual(46);
 });
 
+test("the cells the html map colours concatenate to exactly the text row", () => {
+  for (const narrow of [false, true]) {
+    const c = districtCells(d(), { narrow });
+    expect(c.mark + c.id + c.host + c.reply + c.stats + c.last).toBe(districtRow(d(), { narrow }));
+  }
+});
+
 test("a district without stats shows a dash rather than zeroes", () => {
-  const row = districtRow(d({ stats: null, repo: null, status: "cold" }));
+  const row = districtRow(d({ stats: null, repo: null, status: "cold", code: null }));
   expect(row).toContain("—");
   expect(row).not.toContain("0c / 0d");
+});
+
+test("a row quotes the observed code rather than a label for the status", () => {
+  expect(districtRow(d({ status: "cold", code: 502 }))).toContain("502");
+  expect(districtRow(d({ status: "cold", code: 502 }))).not.toContain("timeout");
+  expect(districtRow(d({ status: "cold", code: null }))).toContain("no answer");
+});
+
+test("the legend names ? only when a district actually holds it", () => {
+  const known = summaryLines([d()], snap(), NOW);
+  expect(known[2]).not.toContain("not observed");
+
+  const unknown = summaryLines([d({ status: "unknown" })], snap({ ok: false }), NOW);
+  expect(unknown[2]).toContain("? not observed");
 });
 
 const NOW = new Date("2026-08-13T10:00:00.000Z");

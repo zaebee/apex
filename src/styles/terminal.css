@@ -1,0 +1,251 @@
+/* One committed visual world: a terminal is its own register and has no light
+   variant. Every colour is painted explicitly so the page holds on any host
+   ground rather than borrowing one. Every text colour clears WCAG AA against
+   --ground; --faint is 1.49:1 and therefore carries hairlines only, never text. */
+:root {
+  --ground: #0b0d0c;
+  --fg: #c5cabf; /* 11.67:1 */
+  --dim: #8a938c; /*  6.16:1 */
+  --faint: #2c322d; /* hairlines only */
+  --hover: #171c18;
+  --alive: #8fbf72; /*  9.16:1 */
+  --warn: #c9a227; /*  8.06:1 — reserved for unknown, never spent on cold */
+  --bar-bg: #8fbf72;
+  --bar-fg: #0b0d0c;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+pre {
+  margin: 0;
+  font: inherit;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+.term {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  padding: 16px 14px 8px;
+}
+
+.wrap {
+  max-width: 96ch;
+}
+
+.block {
+  margin-bottom: 1.35em;
+}
+
+.echo {
+  color: var(--dim);
+  margin-bottom: 0.55em;
+}
+
+.echo b {
+  color: var(--fg);
+  font-weight: 400;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+.alive {
+  color: var(--alive);
+}
+
+.warn {
+  color: var(--warn);
+}
+
+/* Rows are buttons because they are operable, and a click dispatches the same
+   action the typed command does. Styled to look like terminal output, not like
+   a control — the affordance is the hover, not a border. */
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0 4px;
+  font: inherit;
+  color: inherit;
+  white-space: pre;
+  text-align: left;
+  cursor: pointer;
+  width: max-content;
+  min-width: 100%;
+  font-variant-numeric: tabular-nums;
+  display: block;
+  text-decoration: none;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--hover);
+}
+
+.row:focus-visible {
+  outline: 1px solid var(--alive);
+  outline-offset: -1px;
+}
+
+a,
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--dim);
+  text-underline-offset: 3px;
+}
+
+a:hover,
+.link:hover {
+  text-decoration-color: var(--alive);
+}
+
+a:focus-visible,
+.link:focus-visible {
+  outline: 1px solid var(--alive);
+  outline-offset: 2px;
+}
+
+.promptline {
+  display: flex;
+  align-items: baseline;
+  white-space: pre;
+}
+
+.ps1 {
+  color: var(--dim);
+}
+
+/* strict: a solid block that never blinks */
+.cursor {
+  display: inline-block;
+  width: 1ch;
+  height: 1.15em;
+  background: var(--fg);
+  vertical-align: text-bottom;
+}
+
+.hint {
+  color: var(--dim);
+  margin-left: 3ch;
+}
+
+#sink {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  padding: 0;
+}
+
+/* The tmux status line replaces the navbar entirely. The links underneath are
+   real routes, so the back button and per-page indexing keep working. */
+.status {
+  position: sticky;
+  bottom: 0;
+  flex: none;
+  background: var(--bar-bg);
+  color: var(--bar-fg);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 12.5px;
+  line-height: 1.9;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.status .session {
+  font-weight: 700;
+  padding-right: 10px;
+}
+
+.status a {
+  color: var(--bar-fg);
+  text-decoration: none;
+  padding: 0 9px;
+  opacity: 0.72;
+}
+
+.status a:hover {
+  opacity: 1;
+}
+
+.status a[aria-current="page"] {
+  opacity: 1;
+  font-weight: 700;
+}
+
+.status a:focus-visible {
+  outline: 2px solid var(--ground);
+  outline-offset: -2px;
+}
+
+.status .right {
+  margin-left: auto;
+  padding-left: 12px;
+  opacity: 0.8;
+}
+
+/* The host column is recoverable from the district name, so dropping it brings
+   the row inside a 375px screen instead of scrolling it sideways. The rows are
+   only half the problem: the legend and the closing prose are long single lines
+   and would push the page sideways on their own, so they wrap on narrow while
+   the columns keep their hard pre. */
+@media (max-width: 620px) {
+  body {
+    font-size: 12px;
+  }
+
+  .status .right {
+    display: none;
+  }
+
+  .host-col {
+    display: none;
+  }
+
+  .prose {
+    white-space: pre-wrap;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  /* The continuation line is indented under the district name on wide screens.
+     With the host column gone that indent no longer points at anything, and a
+     long description would reintroduce the sideways scroll the row fix removed. */
+  .what {
+    white-space: pre-wrap;
+  }
+}

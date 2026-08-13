@@ -18,6 +18,9 @@ export interface District {
   why: string | null;
   learned: string | null;
   status: Status;
+  /** The HTTP code actually observed, when one was. Carried so the row can
+   *  report what came back rather than a label chosen per status. */
+  code: number | null;
   stats: RepoStats | null;
 }
 
@@ -78,6 +81,13 @@ export function mergeDistricts(
     const s = raw as Stanza;
     const repo = str(s.repo);
     const host = str(s.host);
+    const status = resolveStatus({ host: host ?? undefined, visibility: s.visibility }, health);
+
+    // Only carried when the snapshot itself is trustworthy and the code really
+    // is a number — a code read off a failed check is not an observation.
+    const observedCode = host && health?.ok === true ? health.entries[host]?.code : null;
+    const code = typeof observedCode === "number" ? observedCode : null;
+
     return {
       id,
       title: str(s.title) ?? id,
@@ -86,7 +96,8 @@ export function mergeDistricts(
       what: str(s.what),
       why: str(s.why),
       learned: str(s.learned),
-      status: resolveStatus({ host: host ?? undefined, visibility: s.visibility }, health),
+      status,
+      code,
       stats: repo ? takeStats(stats[repo]) : null,
     };
   });

@@ -334,6 +334,35 @@ what a record can honestly be made to say.
 Entries are markdown in-repo, rendered into the terminal as scrollable output.
 RSS is served — peers read through readers.
 
+## Machine-readable surfaces
+
+The site holds that machines are subjects worth testifying about. A site legible
+only to humans treats them as second-class readers, and `curl zae.life` already
+says otherwise. What ships:
+
+| Surface | Contents | Why |
+|---|---|---|
+| `/districts.json` | The merged district data, verbatim | The evidence, not just the conclusion |
+| `/health.json` | The raw health snapshot with its timestamps | Anyone can check the map against what was actually measured |
+| `/llms.txt` | Markdown summary of who, what, and the districts | Being found by people who ask a model instead of a search engine |
+| `/rss.xml` | Attestations | Peers read through readers |
+| `/robots.txt` | Open, AI crawlers included | Blocking them would sit oddly beside the positioning |
+
+Publishing the raw snapshot is the point rather than a convenience. **A witness
+whose testimony cannot be examined is asking to be taken on trust.** The files
+already exist for the build; serving them costs nothing and lets a reader verify
+that the rendered map matches the data underneath it.
+
+`llms.txt` is a proposed convention with uneven adoption and no provider
+commitment. It is included because it costs one endpoint over data already
+merged, not because it is settled.
+
+**No `agents.json` / A2A Agent Card.** An agent card advertises skills an agent
+can be asked to execute. Nothing executes behind zae.life — it is static. A card
+would assert a capability that does not exist, which is false witness aimed at
+machines rather than people. Revisit only once something real answers on the
+other end.
+
 ## Stack and harness
 
 | Concern | Choice | Reason |

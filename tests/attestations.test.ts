@@ -78,12 +78,16 @@ test("every entry renders all three fields, each distinguishable", async () => {
       // prefix compared: an earlier version looked for a comma inside a 40-80
       // character window, which made the test depend on where a sentence
       // happened to break rather than on whether the field rendered.
-      const value = new RegExp(`^${field}:\\s*"(.*)"\\s*$`, "m").exec(src)?.[1];
-      expect(value).toBeDefined();
+      // No length floor. The schema allows a one-character field, so requiring
+      // forty would fail a valid short entry — the same accident this test was
+      // rewritten to stop pinning, committed in the change that counted the
+      // previous three.
+      const match = new RegExp(`^${field}:\\s*"(.*)"\\s*$`, "m").exec(src);
+      expect(match).not.toBeNull();
 
-      const opening = (value as string).replace(/\s+/g, " ").slice(0, 60);
-      expect(opening.length).toBeGreaterThan(40);
-      expect(text.replace(/\s+/g, " ")).toContain(opening);
+      const value = match?.[1] ?? "";
+      expect(value.length).toBeGreaterThan(0);
+      expect(text.replace(/\s+/g, " ")).toContain(value.replace(/\s+/g, " ").slice(0, 60));
     }
   }
 });

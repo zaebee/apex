@@ -1,4 +1,14 @@
-export const config = { matcher: "/" };
+// "/" for the curl branch. The rest are the paths the apex used to serve before
+// Грани Памяти moved to grani.zae.life: Telegram caches a bot's menu-button URL
+// and people share links, so those keep working instead of landing on a terminal
+// that knows nothing about them. Note /api/v1 specifically — /api/ping is this
+// site's own live probe and must not be swept up.
+export const config = {
+  matcher: ["/", "/webapp", "/webapp/:path*", "/api/v1/:path*"],
+};
+
+const MOVED_PREFIXES = ["/webapp", "/api/v1"];
+const MOVED_TO = "https://grani.zae.life";
 
 /** Exported so the test exercises this regex rather than a copy of it. A copy
  *  would keep passing after this one changed. */
@@ -17,15 +27,23 @@ export const TERMINAL_UA = /\b(curl|wget|httpie|xh)\b/i;
  *  next/server import, which would add a Next dependency this project does not
  *  otherwise need. */
 export default async function middleware(request: Request): Promise<Response | undefined> {
+  const url = new URL(request.url);
+
+  // 308 rather than 302: the method and body survive, so a WebApp still posting
+  // to the old origin reaches the new one intact rather than being turned into
+  // a GET.
+  if (MOVED_PREFIXES.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) {
+    return Response.redirect(`${MOVED_TO}${url.pathname}${url.search}`, 308);
+  }
+
   const ua = request.headers.get("user-agent") ?? "";
   if (!TERMINAL_UA.test(ua)) return;
-
-  const url = new URL(request.url);
-  url.pathname = "/plain.txt";
-  url.search = "";
+  const plain = new URL(url);
+  plain.pathname = "/plain.txt";
+  plain.search = "";
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(plain, {
       headers: { "user-agent": "zae.life middleware" },
       // this runs on the critical path of every `/` request from a terminal, so
       // a cold start or a network blip must not hold the response open — the

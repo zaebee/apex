@@ -33,3 +33,9 @@ what = "Track records for code-review agents"
 repo = "zaebee/house"
 title = "house"
 what = "20.9 sotki in Vologda oblast. Not software."
+
+[grani]
+repo = "zaebee/memory-facets"
+host = "grani.zae.life"
+title = "grani"
+what = "Грани Памяти — a Telegram WebApp game. Held the apex until now."

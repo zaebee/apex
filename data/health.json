@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-08-13T09:01:25.118Z",
+  "checkedAt": "2026-08-13T09:18:31.314Z",
   "ok": true,
-  "lastOkAt": "2026-08-13T09:01:25.118Z",
+  "lastOkAt": "2026-08-13T09:18:31.314Z",
   "entries": {
     "aura.zae.life": {
       "host": "aura.zae.life",
@@ -22,6 +22,26 @@
       "host": "grani.zae.life",
       "ok": true,
       "code": 200
+    },
+    "chat.zae.life": {
+      "host": "chat.zae.life",
+      "ok": false,
+      "code": null
+    },
+    "crm.zae.life": {
+      "host": "crm.zae.life",
+      "ok": false,
+      "code": 502
+    },
+    "medicine.zae.life": {
+      "host": "medicine.zae.life",
+      "ok": true,
+      "code": 200
+    },
+    "quiz.zae.life": {
+      "host": "quiz.zae.life",
+      "ok": false,
+      "code": null
     }
   }
 }

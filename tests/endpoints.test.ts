@@ -99,17 +99,12 @@ test("the advertised windows are pages, not 404s", async () => {
   expect(await Bun.file(`${dist}/me/index.html`).exists()).toBe(true);
 });
 
-// With no attestations published, nothing may claim there are any.
-test("the empty journal says it is empty rather than pretending", async () => {
-  const log = await read("log/index.html");
-  expect(log).toContain("0 attestations");
-  expect(log).toContain("none published yet");
-});
-
-test("no feed is advertised while there is nothing to feed", async () => {
-  const html = await read("index.html");
-  expect(html).not.toContain('rel="alternate"');
-});
+// The journal's own size and the feed's presence are asserted in
+// tests/attestations.test.ts, conditioned on how many entries exist. The
+// versions that used to sit here hardcoded "0 attestations" and "no feed" —
+// pinning an accident of the moment as a permanent expectation, which is the
+// same mistake a test about house's missing statistics made before it, and
+// which reported the first published entry as a regression.
 
 // The regex is imported, not copied: a copy would keep passing after the real
 // one changed, which is the same failure as a test asserting on source text.

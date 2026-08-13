@@ -28,6 +28,9 @@ const wrap = (s: string, width = 68) => {
 // braces; the constant sidesteps it without changing the output.
 const NL = "\n";
 
+// Each block is assembled here, not laid out in the template: text interleaved
+// with expressions across source lines inherits the template's own newlines and
+// indentation, and these sit inside a <pre>.
 const fields: Array<[string, string]> = [
   ["claimed  ──", entry.data.claimed],
   ["observed ──", entry.data.observed],
@@ -46,11 +49,7 @@ const fields: Array<[string, string]> = [
 </pre>
   {
     fields.map(([label, value]) => (
-      <pre class="prose">
-        <span class="dim">{`  ${label}`}</span>
-        {NL}
-        {wrap(value)}
-      </pre>
+      <pre class="prose"><span class="dim">{`  ${label}`}</span>{`${NL}${wrap(value)}${NL}`}</pre>
     ))
   }
   <div class="block"><Content /></div>

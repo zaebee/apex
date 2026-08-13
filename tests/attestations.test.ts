@@ -58,3 +58,28 @@ test("each attestation is reachable at its own url", async () => {
     expect(await Bun.file(`${dist}/log/${slug}/index.html`).exists()).toBe(true);
   }
 });
+
+// The site's subject is the gap between a claim and an observation, and the
+// page that shows that gap was protected by nothing: the endpoint tests cover
+// routes, the feed and the journal's size, but none of them would notice if a
+// field stopped rendering. A provenance UI that silently drops a field is worse
+// than one that never existed.
+test("every entry renders all three fields, each distinguishable", async () => {
+  for (const f of await entries()) {
+    const slug = f.replace(/\.md$/, "");
+    const html = await Bun.file(`${dist}/log/${slug}/index.html`).text();
+    const text = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]*>/g, "");
+    const src = await Bun.file(`${DIR}/${f}`).text();
+
+    for (const field of ["claimed", "observed", "attested"]) {
+      expect(text).toContain(field);
+
+      // and the value, not just the label: a first clause long enough to be
+      // unambiguous has to appear on the page
+      const value = new RegExp(`^${field}:\\s*"(.{40,80}?)[.,]`, "m").exec(src)?.[1];
+      expect(value).toBeDefined();
+      const normalised = text.replace(/\s+/g, " ");
+      expect(normalised).toContain((value as string).replace(/\s+/g, " "));
+    }
+  }
+});

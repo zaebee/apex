@@ -22,9 +22,22 @@ await Bun.write(OUT, `${JSON.stringify(snapshot, null, 2)}\n`);
 // Folded here rather than derived at build time, because Vercel builds from a
 // shallow clone and has no git history to walk.
 const historyFile = Bun.file(HISTORY);
-const priorHistory: History = (await historyFile.exists())
-  ? ((await historyFile.json()) as History)
-  : EMPTY_HISTORY;
+let priorHistory: History = EMPTY_HISTORY;
+
+if (await historyFile.exists()) {
+  try {
+    priorHistory = (await historyFile.json()) as History;
+  } catch {
+    // Refuse rather than start over. An unreadable record is not an empty one,
+    // and overwriting it would erase every observation ever made on the
+    // strength of a run that could not read them. The file stays on disk, the
+    // run goes red, and someone looks — the same posture scan.ts takes when it
+    // cannot read a repository. The snapshot above is already written, so
+    // health keeps working while the record waits.
+    console.error(`refusing to fold into an unreadable ${HISTORY} — the record is left intact`);
+    process.exit(1);
+  }
+}
 const history = updateHistory(priorHistory, snapshot, now);
 await Bun.write(HISTORY, `${JSON.stringify(history, null, 2)}\n`);
 

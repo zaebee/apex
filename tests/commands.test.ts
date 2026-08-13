@@ -120,6 +120,6 @@ test("and the same holds through the click path", () => {
   for (const id of ['1"]', "a[b]", ""]) {
     const el = { dataset: { act: "log", id } } as unknown as HTMLElement;
     const action = actionFromClick(el);
-    expect(action?.kind === "logEntry").toBe(false);
+    expect(action?.kind).not.toBe("logEntry");
   }
 });

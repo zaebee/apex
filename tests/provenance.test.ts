@@ -159,16 +159,25 @@ test("a quotation verbatim in full is checked whole before it is split", () => {
   expect(firstFragment(r).verdict).toBe("verbatim");
 });
 
+// Without depth tracking the inner closer ends the quotation, and the witness
+// is recorded as having quoted half of what it quoted. Mutation-found: the
+// depth loop had no test at all.
+test("a quotation containing a quotation ends at its own closing mark", () => {
+  expect(
+    extractQuotations("He wrote “he called it “the harness” at first” once.").map((q) => q.raw),
+  ).toEqual(["he called it “the harness” at first"]);
+});
+
 test("a blockquote line is not checked twice when it contains an inline quotation", () => {
   expect(extractQuotations('> The witness wrote "The model" right here').map((q) => q.raw)).toEqual(
     ["The model"],
   );
 });
 
-// The witness answers in this repository write every citation as
+// One of the committed witness answers writes every citation as
 // `**Цитата:** *"…"*`. A boundary rule admitting only whitespace rejected all
-// of them: the tool extracted nothing from the one input it was built for,
-// while an entry claimed it would have caught them.
+// five of that answer's citations while an entry claimed the tool would have
+// caught them.
 test("emphasis and an ellipsis around the marks do not hide a quotation", () => {
   expect(extractQuotations('He stressed **"Users can choose"** loudly.').map((q) => q.raw)).toEqual(
     ["Users can choose"],
@@ -216,11 +225,46 @@ test("digits inside an identifier or a date are not offered as figures", () => {
   expect(extractFigures("routing across 59 agents").map((f) => f.value)).toEqual(["59"]);
 });
 
-// The tool reports; it does not conclude. The verdict line is compared whole:
-// asserting merely that the output lacks the word "false" passed against a
-// renderer that printed "the witness made this up".
+// Widening the opener boundary so that `*"…"*` would open also made a
+// possessive apostrophe open a quotation, which swallowed the real one after
+// it and manufactured one from the prose before it — the exact fault the
+// widening was meant to repair, reintroduced by the repair.
+test("a possessive apostrophe after emphasis does not open a quotation", () => {
+  expect(
+    extractQuotations("The *witness*'s answer said 'keeping humans in control' twice.").map(
+      (q) => q.raw,
+    ),
+  ).toEqual(["keeping humans in control"]);
+});
+
+test("numbers that number a heading or a list item are not offered as figures", () => {
+  expect(extractFigures("### 1. Контекст\n\n1. first item\n- уровни 1–3 here")).toEqual([]);
+  expect(extractFigures("It ran 1,284 tasks and 42 checks.").map((f) => f.value)).toEqual([
+    "1,284",
+    "42",
+  ]);
+});
+
+// The tool reports; it does not conclude. Every verdict line is compared whole
+// and all three verdicts appear: asserting only the absence of the word "false"
+// passed against a renderer printing "the witness made this up", and pinning
+// only the not-found line let a renderer print a too-short fragment as though
+// it appeared in a source — manufacturing support at the printout layer.
 test("the report's verdict vocabulary is fixed and says nothing about the witness", () => {
-  const out = render(checkAnswer('"Agents can get stuck in infinite loops"', { article: ARTICLE }));
+  const out = render(
+    checkAnswer(
+      '"Agents can get stuck in infinite loops" "The model" "A harness (instructions and guardrails)"',
+      {
+        article: ARTICLE,
+      },
+    ),
+  );
   const verdictLines = out.split("\n").filter((l) => /^ {4}\S/.test(l));
-  expect(verdictLines).toEqual(["    not found in: article"]);
+  expect(verdictLines.sort()).toEqual(
+    [
+      "    not found in: article",
+      "    too short to check (under 12 characters)",
+      "    appears in: article",
+    ].sort(),
+  );
 });

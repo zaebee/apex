@@ -16,5 +16,23 @@
     "activeDays": 2,
     "first": "2025-11-28",
     "last": "2025-11-29"
+  },
+  "zaebee/hivemark": {
+    "commits": 91,
+    "activeDays": 2,
+    "first": "2026-08-12",
+    "last": "2026-08-13"
+  },
+  "zaebee/house": {
+    "commits": 19,
+    "activeDays": 2,
+    "first": "2026-07-31",
+    "last": "2026-08-01"
+  },
+  "zaebee/memory-facets": {
+    "commits": 477,
+    "activeDays": 30,
+    "first": "2026-07-03",
+    "last": "2026-08-04"
   }
 }

@@ -27,13 +27,17 @@ jobs:
       # reports "could not observe" instead of "everything is down".
       - run: bun run health
 
+      # Its own step: an unreadable record must not stop the probe from being
+      # committed. This one going red leaves health.json landing as usual.
+      - run: bun run history
+
       # data/districts.toml is never staged. Machines own the numbers, the
       # author owns the words. Pushing this commit is also what redeploys the
       # site, since the snapshot is baked in at build time.
       - run: |
           git config user.name  "zae.life health"
           git config user.email "health@zae.life"
-          git add data/health.json
+          git add data/health.json data/history.json
           git diff --staged --quiet && exit 0
           git commit -m "chore: health snapshot"
           # rebase immediately before pushing: nothing serialises this job

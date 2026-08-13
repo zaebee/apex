@@ -11,7 +11,8 @@
     "lint": "biome check .",
     "fmt": "biome check --write .",
     "scan": "bun run scripts/scan.ts",
-    "health": "bun run scripts/health.ts"
+    "health": "bun run scripts/health.ts",
+    "history": "bun run scripts/history.ts"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

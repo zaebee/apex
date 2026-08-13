@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { loadDistricts } from "../lib/districts";
-import { districtRow, summaryLines } from "../lib/format";
+import { continuationIndent, districtRow, secondLineFor, summaryLines } from "../lib/format";
 
 // Same formatter as the HTML map, so the two renderings cannot disagree about
 // the same district. `curl zae.life` is served this by the edge middleware.
@@ -30,7 +30,13 @@ export const GET: APIRoute = async () => {
     "",
     ...summaryLines(districts, health, now).map((l) => `  ${l}`),
     "",
-    ...districts.map((d) => `  ${districtRow(d)}`),
+    ...districts.flatMap((d) => {
+      const row = `  ${districtRow(d)}`;
+      const second = secondLineFor(d, now);
+      // derived, not a literal: these rows carry a two-space prefix the page's
+      // do not, and a hardcoded indent landed two columns off the host column
+      return second ? [row, `${" ".repeat(2 + continuationIndent(d))}${second}`] : [row];
+    }),
     "",
     // the same rule the page follows: this line asserts a count, so it may only
     // appear when the check that produced the count actually succeeded

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parse as parseToml } from "smol-toml";
+import { EMPTY_HISTORY, type History, type HostRecord, takeRecord } from "./history";
 import { type HealthSnapshot, resolveStatus, type Status } from "./status";
 
 export interface RepoStats {
@@ -23,6 +24,9 @@ export interface District {
   why: string | null;
   learned: string | null;
   status: Status;
+  /** How long this district has read the way it reads, and on how many
+   *  observations. Absent until a check has seen it at least once. */
+  observed: HostRecord | null;
   /** The HTTP code actually observed, when one was. Carried so the row can
    *  report what came back rather than a label chosen per status. */
   code: number | null;
@@ -83,6 +87,7 @@ export function mergeDistricts(
   tomlText: string,
   stats: Record<string, RepoStats>,
   health: HealthSnapshot | null,
+  history: History = EMPTY_HISTORY,
 ): District[] {
   const table = parseToml(tomlText) as Record<string, unknown>;
 
@@ -116,6 +121,7 @@ export function mergeDistricts(
       learned: str(s.learned),
       status,
       code,
+      observed: host ? takeRecord(history.hosts?.[host], new Date()) : null,
       stats: repo ? takeStats(stats[repo]) : null,
     };
   });
@@ -142,6 +148,7 @@ export async function loadDistricts(): Promise<{
 
   const stats = (await readJson<Record<string, RepoStats>>("data/stats.json")) ?? {};
   const health = await readJson<HealthSnapshot>("data/health.json");
+  const history = (await readJson<History>("data/history.json")) ?? EMPTY_HISTORY;
 
-  return { districts: mergeDistricts(tomlText, stats, health), health };
+  return { districts: mergeDistricts(tomlText, stats, health, history), health };
 }

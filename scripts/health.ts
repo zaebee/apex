@@ -12,7 +12,8 @@ const previous: HealthSnapshot | null = (await file.exists())
   ? ((await file.json()) as HealthSnapshot)
   : null;
 
-const snapshot = await buildSnapshot(hosts, new Date(), fetch, { previous });
+const now = new Date();
+const snapshot = await buildSnapshot(hosts, now, fetch, { previous });
 await Bun.write(OUT, `${JSON.stringify(snapshot, null, 2)}\n`);
 
 const alive = Object.values(snapshot.entries).filter((e) => e.ok).length;

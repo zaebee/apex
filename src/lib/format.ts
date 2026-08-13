@@ -1,5 +1,6 @@
 import type { District } from "./districts";
 import { freshness } from "./freshness";
+import type { ObservedState } from "./history";
 import { type HealthSnapshot, MARK, replyFor, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
@@ -38,6 +39,81 @@ export function districtLink(d: District): string | null {
   if (d.host) return `https://${d.host}`;
   if (d.repo) return `https://github.com/${d.repo}`;
   return null;
+}
+
+// timeZone is explicit: `since` is a UTC instant, and formatting it in the
+// runner's local zone shifts the date a day on any negative offset — the site
+// would testify to 31 Jul for a check made on 1 Aug.
+const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const DAY_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "2-digit",
+  timeZone: "UTC",
+});
+
+/** The year appears once the streak is old enough that leaving it out would
+ *  read as this year. Districts staying cold for years is this site's premise,
+ *  so "since 20 Aug" on a thirteen-month silence would understate it as two
+ *  weeks — a smaller claim than the truth, but still not the truth. */
+function sinceLabel(since: string, now: Date): string {
+  const d = new Date(since);
+  const months = (now.getTime() - d.getTime()) / (30 * 86_400_000);
+  return (months > 11 ? DAY_MONTH_YEAR : DAY_MONTH).format(d);
+}
+
+const OBSERVED_VERB: Record<ObservedState, string> = {
+  alive: "answering",
+  cold: "no answer",
+  unknown: "not observed",
+};
+
+/** Present tense only when the current check saw it. Under a blind run the row
+ *  says "unknown" in the status column, and a second line reading "answering"
+ *  beneath it would assert something this run did not observe. */
+const OBSERVED_VERB_PAST: Record<ObservedState, string> = {
+  alive: "answered",
+  cold: "no answer",
+  unknown: "not observed",
+};
+
+function gapsClause(gaps: number): string {
+  if (gaps <= 0) return "";
+  return `, ${gaps} ${gaps === 1 ? "gap" : "gaps"}`;
+}
+
+/** What the record supports, said as narrowly as it is true.
+ *
+ *  Not "silent since sep'25". `chat` last saw a commit in September 2025, but
+ *  this site began watching on the day it went live; what it can testify to is
+ *  the checks it made. Naming the number of observations, and the holes in
+ *  them, is the difference between "it is down" and "I watched it be down".
+ *
+ *  Returns null below two checks: "no answer in 1 check" is the status column
+ *  again, in more words. */
+export function observedFor(d: District, now: Date = new Date()): string | null {
+  const o = d.observed;
+  if (!o || o.checks < 2) return null;
+
+  // the record describes what was seen; the current status decides whether it
+  // may be spoken of in the present
+  const current = d.status === o.state;
+  const verb = current ? OBSERVED_VERB[o.state] : OBSERVED_VERB_PAST[o.state];
+
+  return `${verb} in ${o.checks} checks since ${sinceLabel(o.since, now)}${gapsClause(o.gaps)}`;
+}
+
+/** The one second line a district gets, wherever it is rendered: a living
+ *  district says what it is, a silent one says how long. The page and the
+ *  plain-text branch call this, so they cannot testify differently about the
+ *  same district — which they did when each decided for itself. */
+export function secondLineFor(d: District, now: Date = new Date()): string | null {
+  const watched = observedFor(d, now);
+  return d.status === "alive" ? (d.what ?? watched) : watched;
 }
 
 export interface DistrictCells {

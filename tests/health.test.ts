@@ -105,3 +105,54 @@ test("the shipped allowlist yields the hosts the map will probe", async () => {
   expect(hosts).toContain("aura.zae.life");
   expect(hosts).not.toContain(undefined);
 });
+
+// --- #10: a hostname that now points elsewhere was not observed ---
+
+/** A lapsed domain landing on a registrar's parking page: 200, and nothing to
+ *  do with the district that used to be there. */
+const parkedFetch = (async () => {
+  const res = new Response("<html>buy this domain</html>", { status: 200 });
+  Object.defineProperty(res, "url", { value: "https://parking.example.com/lander" });
+  return res;
+}) as unknown as typeof fetch;
+
+const localeRedirectFetch = (async (url: string | URL) => {
+  const res = new Response("", { status: 200 });
+  Object.defineProperty(res, "url", { value: `${String(url).replace(/\/$/, "")}/en` });
+  return res;
+}) as unknown as typeof fetch;
+
+const wwwFetch = (async (url: string | URL) => {
+  const res = new Response("", { status: 200 });
+  Object.defineProperty(res, "url", { value: String(url).replace("https://", "https://www.") });
+  return res;
+}) as unknown as typeof fetch;
+
+test("a parked domain answering 200 is not reported alive", async () => {
+  const e = await probe("lapsed.zae.life", parkedFetch);
+  expect(e.ok).toBe(false);
+  expect(e.redirectedTo).toBe("https://parking.example.com/lander");
+});
+
+test("and it resolves to unknown, not cold — nothing observed this district", async () => {
+  const snap = await buildSnapshot(["lapsed.zae.life"], new Date(), parkedFetch);
+  expect(resolveStatus({ host: "lapsed.zae.life" }, snap)).toBe("unknown");
+});
+
+test("a redirect within the same host is still the district answering", async () => {
+  const e = await probe("estate.zae.life", localeRedirectFetch);
+  expect(e.ok).toBe(true);
+  expect(e.redirectedTo).toBeNull();
+});
+
+test("www and the bare host are the same site by convention", async () => {
+  const e = await probe("estate.zae.life", wwwFetch);
+  expect(e.ok).toBe(true);
+  expect(e.redirectedTo).toBeNull();
+});
+
+test("where the probe landed is published either way", async () => {
+  const snap = await buildSnapshot(["lapsed.zae.life"], new Date(), parkedFetch);
+  // the record shows what was reached, so the judgment is checkable by a reader
+  expect(snap.entries["lapsed.zae.life"]?.redirectedTo).toContain("parking.example.com");
+});

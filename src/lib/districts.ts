@@ -7,6 +7,11 @@ export interface RepoStats {
   activeDays: number;
   first: string;
   last: string;
+  /** When this history was read. Per repo rather than per file: a repo that
+   *  failed to clone keeps the entry a previous run observed, and that entry
+   *  must keep its own read time — a fresh stamp on a carried-forward number
+   *  would claim an observation this run did not make. */
+  readAt?: string | null;
 }
 
 export interface District {
@@ -52,12 +57,17 @@ function takeStats(raw: unknown): RepoStats | null {
   if (typeof r.commits !== "number" || typeof r.activeDays !== "number") return null;
 
   const date = (v: unknown): string => (typeof v === "string" && ISO_DATE.test(v) ? v : "");
+  // shape-checked like the dates: a timestamp copied verbatim out of a
+  // machine-written file is another channel for text to reach the page
+  const stamp = (v: unknown): string | null =>
+    typeof v === "string" && !Number.isNaN(Date.parse(v)) ? v : null;
 
   return {
     commits: r.commits,
     activeDays: r.activeDays,
     first: date(r.first),
     last: date(r.last),
+    readAt: stamp(r.readAt),
   };
 }
 

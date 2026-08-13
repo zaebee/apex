@@ -126,3 +126,27 @@ test("the shipped allowlist parses and every stanza yields a district", async ()
     expect(d.title.length).toBeGreaterThan(0);
   }
 });
+
+// --- #9: statistics carry when they were read ---
+
+test("a read time survives the merge and is shape-checked", () => {
+  const withStamp = {
+    "zaebee/aura": { ...stats["zaebee/aura"], readAt: "2026-08-13T09:00:00.000Z" },
+  } as unknown as typeof stats;
+  const aura = mergeDistricts(toml, withStamp, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.readAt).toBe("2026-08-13T09:00:00.000Z");
+});
+
+test("a read time that is not a time is dropped, not shown", () => {
+  const poisoned = {
+    "zaebee/aura": { ...stats["zaebee/aura"], readAt: "READ MOMENTS AGO, ALL FRESH" },
+  } as unknown as typeof stats;
+  const aura = mergeDistricts(toml, poisoned, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.readAt).toBeNull();
+});
+
+test("statistics with no read time say nothing rather than implying now", () => {
+  const aura = mergeDistricts(toml, stats, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.readAt).toBeNull();
+  expect(aura?.stats?.commits).toBe(517);
+});

@@ -7,6 +7,10 @@ export interface HealthEntry {
   host: string;
   ok: boolean;
   code: number | null;
+  /** Set when the probe followed a redirect to a different host. Published so a
+   *  reader can see what was actually reached, rather than having to trust that
+   *  the code made the right call about it. */
+  redirectedTo?: string | null;
 }
 
 export interface HealthSnapshot {
@@ -74,6 +78,14 @@ export function resolveStatus(d: StatusInput, snapshot: HealthSnapshot | null): 
   if (snapshot?.ok !== true) return "unknown";
 
   const entry = snapshot.entries[d.host];
+
+  // A hostname that now redirects somewhere else was not observed — something
+  // else was, at that address. A lapsed domain landing on a registrar's parking
+  // page answers 200, and calling that alive would report the day a district
+  // died as the day it turned green. Neither alive nor cold is true here: the
+  // check reached a server and learned nothing about this district.
+  if (entry?.redirectedTo) return "unknown";
+
   if (entry?.ok === true) return "alive";
   if (entry?.ok === false) return "cold";
   return "unknown";

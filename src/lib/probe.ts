@@ -1,5 +1,19 @@
 import type { HealthEntry, HealthSnapshot } from "./status";
 
+/** `www.` is the one prefix that conventionally names the same site, so a
+ *  redirect across it is not a redirect away from the district. Everything else
+ *  is a different host, whatever it happens to serve. */
+const bare = (h: string) => h.replace(/^www\./i, "").toLowerCase();
+
+export function sameSite(probed: string, finalUrl: string): boolean {
+  try {
+    return bare(new URL(finalUrl).hostname) === bare(probed);
+  } catch {
+    // an unparseable final URL is not evidence that it was the same place
+    return false;
+  }
+}
+
 export async function probe(
   host: string,
   fetchImpl: typeof fetch = fetch,
@@ -8,13 +22,25 @@ export async function probe(
   try {
     const res = await fetchImpl(`https://${host}/`, {
       method: "GET",
+      // Followed on purpose: a live district may legitimately redirect — to
+      // https, to a locale, to a trailing slash. Where it landed is what
+      // decides whether the district was observed, so it is recorded.
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs),
       headers: { "user-agent": "zae.life health check (+https://zae.life)" },
     });
-    return { host, ok: res.status >= 200 && res.status < 400, code: res.status };
+
+    const landed = res.url || `https://${host}/`;
+    const offSite = !sameSite(host, landed);
+
+    return {
+      host,
+      ok: !offSite && res.status >= 200 && res.status < 400,
+      code: res.status,
+      redirectedTo: offSite ? landed : null,
+    };
   } catch {
-    return { host, ok: false, code: null };
+    return { host, ok: false, code: null, redirectedTo: null };
   }
 }
 

@@ -2,11 +2,28 @@ import { expect, test } from "bun:test";
 import { loadDistricts } from "../src/lib/districts";
 import { districtRow } from "../src/lib/format";
 
-const html = await Bun.file("dist/index.html").text();
-/** What a crawler with no JavaScript, and a visitor whose script failed, see.
- *  Today the built page carries no script at all (the island is still empty),
- *  so this is a no-op — it starts discriminating once Task 9 ships the island. */
+/** Astro emits static output to dist/ with no server routes and to dist/client/
+ *  once one exists (/api/ping). Resolved rather than hardcoded so adding or
+ *  removing a function does not fail these tests in a way that reads as a
+ *  rendering bug. */
+async function builtPage(): Promise<string> {
+  for (const p of ["dist/client/index.html", "dist/index.html"]) {
+    const f = Bun.file(p);
+    if (await f.exists()) return await f.text();
+  }
+  throw new Error("no built index.html — run `bun run build` first");
+}
+
+const html = await builtPage();
+/** What a crawler with no JavaScript, and a visitor whose script failed, see. */
 const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/g, "");
+
+// Without this the assertions below would still pass on a page carrying no
+// script at all, and "survives without JavaScript" would mean nothing.
+test("the page does ship a script, so stripping it is a real test", () => {
+  expect(html).toContain("<script");
+  expect(withoutScripts.length).toBeLessThan(html.length);
+});
 
 const decode = (s: string) =>
   s
@@ -26,7 +43,7 @@ interface RenderedRow {
  *  rather than against the library that produced it. */
 function renderedRows(source: string): RenderedRow[] {
   const out: RenderedRow[] = [];
-  const re = /<button[^>]*data-act="cd" data-id="([^"]+)"[^>]*>([\s\S]*?)<\/button>/g;
+  const re = /<summary[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)<\/summary>/g;
   let m = re.exec(source);
   while (m) {
     out.push({
@@ -37,6 +54,11 @@ function renderedRows(source: string): RenderedRow[] {
     m = re.exec(source);
   }
   return out;
+}
+
+function renderedCard(source: string, id: string): string {
+  const m = new RegExp(`<details[^>]*\\sid="${id}"[\\s\\S]*?<\\/details>`).exec(source);
+  return m ? decode(m[0].replace(/<[^>]*>/g, "")) : "";
 }
 
 test("every district in the allowlist renders server-side", async () => {
@@ -95,6 +117,31 @@ test("no rendered district is green unless the snapshot observed it", async () =
   }
 });
 
+// `cd <district>` is specified as opening the card. Built on <details>, so the
+// card exists in the markup and opens by click and by keyboard with no script
+// at all; the command layer toggles the same `open` property.
+test("every district ships an openable card, not just a row", async () => {
+  const { districts } = await loadDistricts();
+  for (const d of districts) {
+    const card = renderedCard(withoutScripts, d.id);
+    expect(card).toContain("what");
+    expect(card).toContain("why");
+    expect(card).toContain("learned");
+  }
+});
+
+test("a card names its unwritten prose rather than filling it", () => {
+  // no district has why/learned written yet, and the page says so
+  const card = renderedCard(withoutScripts, "aura");
+  expect(card).toContain("not written yet");
+});
+
+test("a card reports the commits it has and omits the line it does not", () => {
+  // aura's statistics were read; house has no host and no stats entry
+  expect(renderedCard(withoutScripts, "aura")).toContain("commits across");
+  expect(renderedCard(withoutScripts, "house")).not.toContain("commits across");
+});
+
 test("the page paints its own ground rather than borrowing one", () => {
   expect(html).toMatch(/body\s*\{[^}]*background:\s*var\(--ground\)/);
   expect(html).toContain("--ground:#0b0d0c");
@@ -102,6 +149,32 @@ test("the page paints its own ground rather than borrowing one", () => {
 
 test("the unwritten tagline is marked unwritten rather than filled in", () => {
   expect(withoutScripts).toContain("tagline: yours to write");
+});
+
+// The dispatch handle must sit on the summary. With it on the <details>, every
+// click inside the open card — prose, the outbound link, a text selection —
+// resolved to a cd toggle and was preventDefault()ed, so the card fought the
+// reader and its one link could never be followed.
+test("the dispatch handle is on the summary, never on the card body", () => {
+  const details = withoutScripts.match(/<details[^>]*>/g) ?? [];
+  expect(details.length).toBeGreaterThan(0);
+  for (const tag of details) expect(tag).not.toContain("data-act");
+
+  const summaries = withoutScripts.match(/<summary[^>]*>/g) ?? [];
+  expect(summaries.length).toBe(details.length);
+  for (const tag of summaries) expect(tag).toContain('data-act="cd"');
+});
+
+test("the map lives outside the container clear empties", () => {
+  // `clear` used to delete the server-rendered city, after which cd answered
+  // "no district" about a district on the allowlist
+  const streamStart = withoutScripts.indexOf('id="stream"');
+  const outputStart = withoutScripts.indexOf('id="output"');
+  const firstDistrict = withoutScripts.indexOf("<details");
+  expect(streamStart).toBeGreaterThan(-1);
+  expect(outputStart).toBeGreaterThan(streamStart);
+  expect(firstDistrict).toBeGreaterThan(streamStart);
+  expect(firstDistrict).toBeLessThan(outputStart);
 });
 
 test("the keyboard is never dropped into the invisible input", () => {

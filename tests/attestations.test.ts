@@ -74,12 +74,20 @@ test("every entry renders all three fields, each distinguishable", async () => {
     for (const field of ["claimed", "observed", "attested"]) {
       expect(text).toContain(field);
 
-      // and the value, not just the label: a first clause long enough to be
-      // unambiguous has to appear on the page
-      const value = new RegExp(`^${field}:\\s*"(.{40,80}?)[.,]`, "m").exec(src)?.[1];
-      expect(value).toBeDefined();
-      const normalised = text.replace(/\s+/g, " ");
-      expect(normalised).toContain((value as string).replace(/\s+/g, " "));
+      // and the value, not just the label. The whole field is read and a fixed
+      // prefix compared: an earlier version looked for a comma inside a 40-80
+      // character window, which made the test depend on where a sentence
+      // happened to break rather than on whether the field rendered.
+      // No length floor. The schema allows a one-character field, so requiring
+      // forty would fail a valid short entry — the same accident this test was
+      // rewritten to stop pinning, committed in the change that counted the
+      // previous three.
+      const match = new RegExp(`^${field}:\\s*"(.*)"\\s*$`, "m").exec(src);
+      expect(match).not.toBeNull();
+
+      const value = match?.[1] ?? "";
+      expect(value.length).toBeGreaterThan(0);
+      expect(text.replace(/\s+/g, " ")).toContain(value.replace(/\s+/g, " ").slice(0, 60));
     }
   }
 });

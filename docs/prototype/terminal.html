@@ -2,11 +2,12 @@
 <style>
   :root {
     --ground:  #0b0d0c;
-    --fg:      #c5cabf;
-    --dim:     #6b7268;
-    --faint:   #2c322d;
-    --alive:   #8fbf72;
-    --warn:    #c9a227;
+    --fg:      #c5cabf;   /* 11.67:1 */
+    --dim:     #8a938c;   /*  6.16:1 — lifted from #6b7268 (3.93:1, failed AA) */
+    --faint:   #2c322d;   /* borders only, never text */
+    --hover:   #171c18;
+    --alive:   #8fbf72;   /*  9.16:1 */
+    --warn:    #c9a227;   /*  8.06:1 */
     --bar-bg:  #8fbf72;
     --bar-fg:  #0b0d0c;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -28,7 +29,7 @@
     overflow: hidden;
   }
 
-  /* ---- meta strip: deliberately NOT terminal output ---- */
+  /* meta strip: deliberately NOT terminal output */
   .meta {
     font-family: var(--sans);
     font-size: 11px;
@@ -42,76 +43,62 @@
     align-items: baseline;
     flex: none;
   }
-  .meta b { color: var(--fg); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-  .meta span { color: var(--dim); }
+  .meta b { color: var(--fg); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .meta i { color: var(--warn); font-style: normal; font-weight: 600; }
 
-  /* ---- terminal ---- */
-  .term {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: auto;
-    padding: 16px 14px 8px;
-    cursor: text;
-  }
-  .wrap { min-width: 68ch; max-width: 96ch; }
+  .term { flex: 1 1 auto; overflow-y: auto; overflow-x: auto; padding: 16px 14px 8px; cursor: text; }
+  .wrap { max-width: 96ch; }
 
-  pre {
-    margin: 0;
-    font: inherit;
-    white-space: pre;
-    font-variant-numeric: tabular-nums;
-  }
+  pre { margin: 0; font: inherit; white-space: pre; font-variant-numeric: tabular-nums; }
   .block { margin-bottom: 1.35em; }
 
   .echo   { color: var(--dim); margin-bottom: .55em; }
   .echo b { color: var(--fg); font-weight: 400; }
 
-  .dim    { color: var(--dim); }
-  .alive  { color: var(--alive); }
-  .warn   { color: var(--warn); }
-  .head   { color: var(--fg); }
-  .rule   { color: var(--faint); }
-  .draft  { color: var(--warn); }
+  .dim   { color: var(--dim); }
+  .alive { color: var(--alive); }
+  .head  { color: var(--fg); }
+  .warn, .draft { color: var(--warn); }
 
-  .banner { color: var(--alive); }
+  /* clickable rows — same actions the commands run, never a separate path */
+  .rows { display: flex; flex-direction: column; }
+  .row {
+    background: none; border: 0; margin: 0; padding: 0 4px;
+    font: inherit; color: inherit; white-space: pre; text-align: left;
+    cursor: pointer; width: max-content; min-width: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  .row:hover, .row:focus-visible { background: var(--hover); }
+  .row:focus-visible { outline: 1px solid var(--alive); outline-offset: -1px; }
 
-  /* ---- prompt ---- */
-  .promptline { display: flex; align-items: baseline; gap: 0; white-space: pre; }
+  .link {
+    background: none; border: 0; padding: 0; font: inherit;
+    color: var(--fg); cursor: pointer; text-decoration: underline;
+    text-decoration-color: var(--dim); text-underline-offset: 3px;
+  }
+  .link:hover { text-decoration-color: var(--alive); }
+  .link:focus-visible { outline: 1px solid var(--alive); outline-offset: 2px; }
+
+  .promptline { display: flex; align-items: baseline; white-space: pre; }
   .ps1 { color: var(--dim); }
   .typed { color: var(--fg); }
   .cursor {
-    display: inline-block;
-    width: 1ch;
-    height: 1.15em;
-    background: var(--fg);
-    vertical-align: text-bottom;
-    /* strict: solid block, no blink, no animation */
+    display: inline-block; width: 1ch; height: 1.15em;
+    background: var(--fg); vertical-align: text-bottom;
+    /* strict: solid block, never blinks */
   }
-  .hint { color: var(--faint); margin-left: 3ch; }
-  #sink {
-    position: absolute; opacity: 0; pointer-events: none;
-    width: 1px; height: 1px; border: 0; padding: 0;
-  }
+  .hint { color: var(--dim); margin-left: 3ch; }
+  #sink { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; border: 0; padding: 0; }
 
-  /* ---- tmux status line ---- */
   .status {
-    flex: none;
-    background: var(--bar-bg);
-    color: var(--bar-fg);
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 0 8px;
-    font-size: 12.5px;
-    line-height: 1.9;
-    white-space: nowrap;
-    overflow-x: auto;
+    flex: none; background: var(--bar-bg); color: var(--bar-fg);
+    display: flex; align-items: center; padding: 0 8px;
+    font-size: 12.5px; line-height: 1.9; white-space: nowrap; overflow-x: auto;
   }
   .status .session { font-weight: 700; padding-right: 10px; }
   .status .win {
-    background: none; border: 0; color: var(--bar-fg);
-    font: inherit; padding: 0 9px; cursor: pointer;
-    opacity: .72;
+    background: none; border: 0; color: var(--bar-fg); font: inherit;
+    padding: 0 9px; cursor: pointer; opacity: .72;
   }
   .status .win:hover { opacity: 1; }
   .status .win.on { opacity: 1; font-weight: 700; }
@@ -127,15 +114,15 @@
 <div class="meta">
   <b>Prototype</b>
   <span>zae.life · strict tmux register</span>
-  <span>Commit counts, active days and dates are <b style="letter-spacing:0">real</b>, read from local git.</span>
-  <span>Health statuses are <b style="letter-spacing:0">mocked</b> — the built site pings for real.</span>
+  <span>Commits, active days and dates are <b style="letter-spacing:0">real</b>, read from local git.</span>
+  <span>Health is <i>mocked</i> — this page is sandboxed and cannot reach the network. The built site pings for real.</span>
 </div>
 
 <div class="term" id="term">
   <div class="wrap">
     <div id="stream"></div>
     <div class="promptline" id="promptline">
-      <span class="ps1">zae.life ~ $ </span><span class="typed" id="typed"></span><span class="cursor"></span><span class="hint" id="hint">cd &lt;district&gt; · log · me · ping · help</span>
+      <span class="ps1">zae.life ~ $ </span><span class="typed" id="typed"></span><span class="cursor"></span><span class="hint" id="hint">click anything, or type — cd &lt;district&gt; · log · me · help</span>
     </div>
     <input id="sink" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="terminal input">
   </div>
@@ -154,14 +141,13 @@
 
 /* ---------- data: real git stats, mocked health ---------- */
 const D = [
-  // id, host, repo, commits, activeDays, last, status, what
-  ["aura","aura.zae.life","zaebee/aura",517,41,"aug'26","alive","Distributed platform for autonomous economic negotiation between AI agents."],
-  ["car","car.zae.life","zaebee/car-crash-genius",27,3,"nov'25","alive","Multimodal damage assessment from accident photos, with on-chain certification."],
-  ["comics","comics.zae.life","zaebee/comics-zone",24,2,"nov'25","alive","Infinite Heroes — an evolving comic serial where the reader is the protagonist."],
-  ["quiz","quiz.zae.life","zaebee/tech-quiz",140,6,"sep'25","alive","Quiz platform built and sold as a finished product for corporate events."],
-  ["chat","chat.zae.life","zaebee/chat",255,11,"sep'25","cold","Hive Chat — the living-application ecosystem where ATCG started."],
-  ["medicine","medicine.zae.life","zaebee/medicine",193,5,"oct'25","cold","Clinic site. Pivoted from Wagtail to a WordPress MVP after meeting the client."],
-  ["crm","crm.zae.life","zaebee/agents-list",183,17,"aug'25","cold","AI-CRM routing tasks across 59 specialised agents."],
+  ["aura","aura.zae.life","zaebee/aura",517,41,"aug'26","alive","Agent negotiation infrastructure"],
+  ["car","car.zae.life","zaebee/car-crash-genius",27,3,"nov'25","alive","Accident damage assessment from photos"],
+  ["comics","comics.zae.life","zaebee/comics-zone",24,2,"nov'25","alive","An endless comic where the reader is the hero"],
+  ["quiz","quiz.zae.life","zaebee/tech-quiz",140,6,"sep'25","alive","Quiz platform, built and sold"],
+  ["chat","chat.zae.life","zaebee/chat",255,11,"sep'25","cold","Hive Chat, where ATCG started"],
+  ["medicine","medicine.zae.life","zaebee/medicine",193,5,"oct'25","cold","Clinic site"],
+  ["crm","crm.zae.life","zaebee/agents-list",183,17,"aug'25","cold","AI-CRM routing work across 59 agents"],
   ["wiki","wiki.zae.life",null,0,0,null,"cold",null],
   ["spirit","spirit.zae.life",null,0,0,null,"cold",null],
   ["space","space.zae.life",null,0,0,null,"cold",null],
@@ -172,16 +158,16 @@ const D = [
   ["moltbook","moltbook.zae.life",null,0,0,null,"cold",null],
   ["staging","staging.zae.life",null,0,0,null,"cold",null],
   ["cloud","cloud.zae.life",null,0,0,null,"cold",null],
-  ["hivemark",null,"zaebee/hivemark",66,2,"aug'26","offline","Cumulative, independently verifiable track records for code-review agents."],
-  ["crash-hunter",null,"zaebee/crash-hunter",58,2,"nov'25","offline","DePIN network for crowdsourcing and verifying real-time accident data."],
-  ["agents",null,"zaebee/agents",51,5,"aug'26","offline","ElizaOS agent configurations."],
-  ["python",null,"zaebee/python",47,4,"oct'25","offline","Python workbench."],
-  ["house",null,"zaebee/house",19,2,"aug'26","offline","20.9 sotki in Vologda oblast. Perimeter garden, scheme B′. Not software."],
+  ["hivemark",null,"zaebee/hivemark",66,2,"aug'26","offline","Track records for code-review agents"],
+  ["crash-hunter",null,"zaebee/crash-hunter",58,2,"nov'25","offline","Crowdsourced accident data network"],
+  ["agents",null,"zaebee/agents",51,5,"aug'26","offline","ElizaOS agent configurations"],
+  ["python",null,"zaebee/python",47,4,"oct'25","offline","Python workbench"],
+  ["house",null,"zaebee/house",19,2,"aug'26","offline","20.9 sotki in Vologda oblast. Not software."],
 ];
 
-const MARK = { alive:"●", cold:"○", offline:"·", private:"▪", unknown:"?" };
-const CLS  = { alive:"alive", cold:"dim", offline:"dim", private:"dim", unknown:"warn" };
-const REPLY= { alive:"200 OK", cold:"timeout", offline:"no service", private:"private", unknown:"unknown" };
+const MARK  = { alive:"●", cold:"○", offline:"·", private:"▪", unknown:"?" };
+const CLS   = { alive:"alive", cold:"dim", offline:"dim", private:"dim", unknown:"warn" };
+const REPLY = { alive:"200 OK", cold:"timeout", offline:"no service", private:"private", unknown:"unknown" };
 
 const LOG = [
   { n:1, date:"2026-08-13", title:"The soulbound token I specified, then deleted",
@@ -199,6 +185,7 @@ const LOG = [
 ];
 
 /* ---------- helpers ---------- */
+const NARROW = window.matchMedia("(max-width: 620px)").matches;
 const pad = (s,n) => { s = s==null ? "" : String(s); return s.length>=n ? s : s + " ".repeat(n-s.length); };
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const c   = (cls,s) => `<span class="${cls}">${esc(s)}</span>`;
@@ -214,11 +201,11 @@ let buf = "", hist = [], hpos = -1;
 function emit(html, echoCmd) {
   const b = document.createElement("div");
   b.className = "block";
-  const e = echoCmd ? `<pre class="echo">zae.life ~ $ <b>${esc(echoCmd)}</b></pre>` : "";
-  b.innerHTML = e + `<pre>${html}</pre>`;
+  b.innerHTML = (echoCmd ? `<pre class="echo">zae.life ~ $ <b>${esc(echoCmd)}</b></pre>` : "") + html;
   stream.appendChild(b);
   term.scrollTop = term.scrollHeight;
 }
+const P = s => `<pre>${s}</pre>`;
 
 function setWindow(w) {
   document.querySelectorAll(".win").forEach(btn => {
@@ -228,38 +215,42 @@ function setWindow(w) {
   });
 }
 
-/* ---------- renderers ---------- */
-function banner() {
+/* ---------- map ---------- */
+function header() {
+  const n = s => D.filter(d => d[6]===s).length;
   return [
-    c("banner","  ██ zaebee · witness, apprentice"),
-    c("draft", "     ‹ tagline: yours to write ›"),
+    `  <button class="link" data-act="me">zaebee</button>` + c("dim", " · witness, apprentice"),
+    c("draft","  ‹ tagline: yours to write ›"),
+    "",
+    c("head", `  ${D.length} districts · ${n("alive")} alive · ${n("cold")} cold · ${n("offline")} offline`),
+    c("dim",  "  snapshot · 6 min ago") + "   " + c("warn","‹ mocked in this prototype ›"),
+    c("dim",  "  ● answering now    ○ was deployed, silent now    · never a web service"),
   ].join("\n");
 }
 
-function summary() {
-  const n = s => D.filter(d => d[6]===s).length;
-  return c("head", `  ${D.length} districts · ${n("alive")} alive · ${n("cold")} cold · ${n("offline")} offline`)
-       + "  " + c("warn","· health MOCKED in this prototype");
-}
-
-function row(d) {
-  const [id,host,repo,com,days,last,st] = d;
+function rowHTML(d) {
+  const [id,host,repo,com,days,last,st,what] = d;
   const stats = repo ? `${com}c / ${days}d` : "—";
-  return c(CLS[st], MARK[st]) + "  "
-       + c("head", pad(id,13))
-       + c(host ? "dim" : "rule", pad(host || "—", 22))
-       + c(CLS[st], pad(REPLY[st], 11))
-       + c("dim", pad(stats, 11))
-       + c("dim", last || "—");
+  const cells = [
+    c(CLS[st], MARK[st]) + "  ",
+    c("head", pad(id,13)),
+    NARROW ? "" : c("dim", pad(host || "—", 22)),
+    c(CLS[st], pad(REPLY[st], 11)),
+    c("dim", pad(stats, 11)),
+    c("dim", last || "—"),
+  ].join("");
+  // the human-readable line rides only on districts a visitor can actually go and see
+  const sub = (st === "alive" && what)
+    ? "\n" + c("dim", "   " + pad("",13) + what)
+    : "";
+  return `<button class="row" data-act="cd" data-id="${id}">${cells}${sub}</button>`;
 }
 
 function mapView() {
-  const lines = [banner(), "", summary(), ""];
-  lines.push(...D.map(row));
-  lines.push("");
-  lines.push(c("dim","  13 districts are not answering. That is accurate — I have not"));
-  lines.push(c("dim","  redeployed them. Claiming otherwise would have been easier."));
-  return lines.join("\n");
+  return P(header())
+    + `<div class="rows">${D.map(rowHTML).join("")}</div>`
+    + P("\n" + c("dim","  13 districts are not answering. That is accurate — I have not")
+             + "\n" + c("dim","  redeployed them. Claiming otherwise would have been easier."));
 }
 
 function card(d) {
@@ -267,6 +258,7 @@ function card(d) {
   const L = (k,v,cls) => c("dim", "  " + pad(k,10)) + c(cls || "head", v);
   const out = [
     c(CLS[st], "  " + MARK[st] + " ") + c("head", id) + c("dim", host ? "  ·  " + host : "  ·  no deployment"),
+    c("head", "  " + (what || "")),
     "",
     L("status", REPLY[st], CLS[st]),
   ];
@@ -275,86 +267,91 @@ function card(d) {
     out.push(L("built", `${com} commits across ${days} active day${days===1?"":"s"}, last ${last}`));
   }
   out.push("");
-  out.push(L("what", what || "—"));
   out.push(c("dim","  " + pad("why",10)) + c("draft","‹ not written yet ›"));
   out.push(c("dim","  " + pad("learned",10)) + c("draft","‹ not written yet ›"));
   out.push("");
-  out.push(c("rule","  why and learned come from districts.toml — your words, never generated."));
-  return out.join("\n");
+  out.push(c("dim","  why and learned come from districts.toml — your words, never generated."));
+  return P(out.join("\n"));
 }
 
+/* ---------- log ---------- */
 function logList() {
-  const out = [c("head","  attestations · 3"), c("dim","  last entry · today"), ""];
-  LOG.forEach(e => {
-    out.push(c("dim","  " + pad(e.n + ".", 4)) + c("head", e.title));
-    out.push(c("rule","      " + e.date));
-  });
-  out.push("");
-  out.push(c("dim","  log <n> to open · rss at /rss.xml"));
-  return out.join("\n");
+  const head = P(c("head","  attestations · 3") + "\n" + c("dim","  last entry · today") + "\n");
+  const rows = LOG.map(e =>
+    `<button class="row" data-act="log" data-id="${e.n}">`
+    + c("dim", pad("  " + e.n + ".", 6)) + c("head", e.title)
+    + "\n" + c("dim", "      " + e.date)
+    + `</button>`).join("");
+  return head + `<div class="rows">${rows}</div>`
+       + P("\n" + c("dim","  rss at /rss.xml"));
 }
 
 function wrapText(s, width, indent) {
-  const words = s.split(" ");
-  const lines = [];
-  let line = "";
-  for (const w of words) {
-    if ((line + " " + w).trim().length > width) { lines.push(line.trim()); line = w; }
+  const out = []; let line = "";
+  for (const w of s.split(" ")) {
+    if ((line + " " + w).trim().length > width) { out.push(line.trim()); line = w; }
     else line += " " + w;
   }
-  if (line.trim()) lines.push(line.trim());
-  return lines.map(l => indent + l).join("\n");
+  if (line.trim()) out.push(line.trim());
+  return out.map(l => indent + l).join("\n");
 }
 
 function logEntry(n) {
   const e = LOG.find(x => x.n === n);
-  if (!e) return c("warn", `  no entry ${n}. try: log`);
-  const part = (label, text) => c("dim", "  " + label) + "\n" + c("head", wrapText(text, 68, "  "));
-  return [
+  if (!e) return P(c("warn", `  no entry ${n}. try: log`));
+  const W = NARROW ? 44 : 68;
+  const part = (label, text) => c("dim", "  " + label) + "\n" + c("head", wrapText(text, W, "  "));
+  return P([
     c("head", "  " + e.title),
-    c("rule", "  " + e.date + "  ·  attestation"),
+    c("dim",  "  " + e.date + "  ·  attestation"),
     "  " + c("draft","‹ draft — reframed from your own hivemark spec; final words yours ›"),
     "",
     part("claimed  ──", e.claimed), "",
     part("observed ──", e.observed), "",
     part("attested ──", e.attested),
-  ].join("\n");
+  ].join("\n"));
 }
 
 function meView() {
+  const W = NARROW ? 44 : 68;
   const L = (k,v,cls) => c("dim","  " + pad(k,11)) + c(cls || "head", v);
-  return [
+  return P([
     c("head","  zaebee · witness, apprentice"),
     "",
-    c("draft", wrapText("‹ your words: what you testify to, and why you decline the role of judge. Stated openly, by your decision. Not drafted by anyone but you. ›", 68, "  ")),
+    c("draft", wrapText("‹ your words: what you testify to, and why you decline the role of judge. Stated openly, by your decision. Not drafted by anyone but you. ›", W, "  ")),
     "",
-    c("head", wrapText("What is measured rather than claimed: 22 project directories, over 1,600 commits since July 2025, most of them shipped in under a week.", 68, "  ")),
+    c("head", wrapText("Measured rather than claimed: 22 project directories, over 1,600 commits since July 2025, most of them shipped in under a week.", W, "  ")),
     "",
     L("github","github.com/zaebee"),
     L("writing","habr.com/ru/users/ZaeBest"),
     L("email","‹ your public contact here ›","draft"),
     "",
-    c("rule","  curl zae.life  — same thing, plain text, no browser."),
-  ].join("\n");
+    c("dim","  curl zae.life  — same thing, plain text, no browser."),
+  ].join("\n"));
 }
 
 function helpView() {
   const L = (cmd,desc) => c("head","  " + pad(cmd,18)) + c("dim", desc);
-  return [
+  return P([
+    c("dim","  Everything here is clickable. Typing is the other way in, never the only one."),
+    "",
     L("ls","the map: every district, live status, real build stats"),
     L("cd <district>","open one district"),
-    L("log","list journal entries"),
+    L("log","list attestations"),
     L("log <n>","open entry n"),
     L("me","who, and how to reach me"),
     L("ping","re-run health checks, ignoring the snapshot"),
     L("clear","clear the screen"),
     L("help","this"),
     "",
-    c("rule","  ↑ ↓ for history. Nothing here needs typing — the map ran before you arrived."),
-  ].join("\n");
+    c("dim","  ● answering now    ○ was deployed, silent now    · never a web service"),
+    c("dim","  ▪ private          ? health check itself failed"),
+    "",
+    c("dim","  ↑ ↓ for history. The map ran before you arrived — nothing needed typing."),
+  ].join("\n"));
 }
 
-/* ---------- command loop ---------- */
+/* ---------- command loop: mouse and keyboard reach the same actions ---------- */
 function run(raw) {
   const line = raw.trim();
   if (!line) { emit("", ""); return; }
@@ -368,69 +365,67 @@ function run(raw) {
       setWindow("map"); emit(mapView(), line); break;
 
     case "cd": {
-      if (!arg) { emit(c("warn","  cd needs a district. try: ls"), line); break; }
+      if (!arg) { emit(P(c("warn","  cd needs a district. try: ls")), line); break; }
       const d = D.find(x => x[0] === arg.replace(/\/$/, ""));
       setWindow("map");
-      emit(d ? card(d) : c("warn", `  no district "${arg}". try: ls`), line);
+      emit(d ? card(d) : P(c("warn", `  no district "${arg}". try: ls`)), line);
       break;
     }
 
     case "log":
       setWindow("log");
-      emit(arg ? logEntry(parseInt(arg, 10)) : logList(), line);
+      emit(arg ? logEntry(parseInt(arg,10)) : logList(), line);
       break;
 
     case "me": setWindow("me"); emit(meView(), line); break;
 
     case "ping":
-      emit(c("dim","  probing 17 hosts …") + "\n\n"
-         + c("warn","  This prototype cannot reach the network — a published artifact")
-         + "\n" + c("warn","  is sandboxed against outbound requests. The built site runs this")
-         + "\n" + c("warn","  against real hosts and prints what actually comes back.")
-         + "\n\n" + c("rule","  Faking a result here would have broken the one rule this site has."), line);
+      emit(P(c("dim","  probing 17 hosts …") + "\n\n"
+        + c("warn","  This prototype cannot reach the network — a published artifact is")
+        + "\n" + c("warn","  sandboxed against outbound requests. The built site runs this against")
+        + "\n" + c("warn","  real hosts and prints what actually comes back.")
+        + "\n\n" + c("dim","  Printing four green dots here would have been two lines shorter,")
+        + "\n" + c("dim","  and would have broken the only rule this site has.")), line);
       break;
 
     case "help": emit(helpView(), line); break;
-
     case "clear": stream.replaceChildren(); break;
 
     case "sudo":
-      emit(c("dim","  zaebee is not in the sudoers file.") + "\n"
-         + c("head","  You are, though. This whole city is unlocked — that is the point."), line);
+      emit(P(c("dim","  zaebee is not in the sudoers file.") + "\n"
+        + c("head","  You are, though. This whole city is unlocked — that is the point.")), line);
       break;
 
     default:
-      emit(c("warn", `  ${cmd}: unknown command`) + "\n"
-         + c("rule","  Not pretending to understand. try: help"), line);
+      emit(P(c("warn", `  ${cmd}: unknown command`) + "\n"
+        + c("dim","  Not pretending to understand. try: help")), line);
   }
 }
 
-/* ---------- input plumbing ---------- */
+/* ---------- input ---------- */
 function render() {
   typedEl.textContent = buf;
   hintEl.style.display = buf ? "none" : "";
 }
 
-term.addEventListener("mousedown", e => {
+term.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (el) {
+    const a = el.dataset.act;
+    run(a === "cd" ? `cd ${el.dataset.id}` : a === "log" ? `log ${el.dataset.id}` : a);
+    sink.focus();
+    return;
+  }
   if (window.getSelection().toString()) return;
-  if (e.target.closest("button")) return;
-  setTimeout(() => sink.focus(), 0);
+  sink.focus();
 });
 
 sink.addEventListener("input", () => { buf = sink.value; render(); });
 
 sink.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    run(buf); buf = ""; sink.value = ""; render();
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    if (hpos < hist.length - 1) { hpos++; buf = hist[hpos]; sink.value = buf; render(); }
-  } else if (e.key === "ArrowDown") {
-    e.preventDefault();
-    if (hpos > 0) { hpos--; buf = hist[hpos]; } else { hpos = -1; buf = ""; }
-    sink.value = buf; render();
-  }
+  if (e.key === "Enter") { e.preventDefault(); run(buf); buf = ""; sink.value = ""; render(); }
+  else if (e.key === "ArrowUp")   { e.preventDefault(); if (hpos < hist.length-1) { hpos++; buf = hist[hpos]; sink.value = buf; render(); } }
+  else if (e.key === "ArrowDown") { e.preventDefault(); if (hpos > 0) { hpos--; buf = hist[hpos]; } else { hpos = -1; buf = ""; } sink.value = buf; render(); }
 });
 
 document.getElementById("status").addEventListener("click", e => {

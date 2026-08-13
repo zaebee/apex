@@ -76,7 +76,11 @@ than shipped.**
    count comes from actual git history. No constants standing in for
    measurements.
 2. **No input required.** The page has already run the query before the visitor
-   arrives. Someone who has never used a terminal reads it fine.
+   arrives. Someone who has never used a terminal reads it fine — and can
+   *operate* it fine: every district, entry and identity is clickable, and a
+   click dispatches the same action the typed command dispatches. One state
+   machine, two ways in. A mouse path that bypasses the command layer would make
+   this a terminal-themed page rather than a terminal.
 3. **It does not testify beyond what it observed.** Dead districts, stale data,
    and silent months are shown plainly; unverified state is never rendered as
    healthy. This is the one constraint the positioning cannot survive losing.
@@ -92,33 +96,60 @@ already performed before it is asked for. On load the page has already run
 `whoami && districts --status` and printed the result. Typing is optional depth,
 never a prerequisite.
 
-Visual register: strict. Monospace, two colors, no animation, no blinking
-cursor, no CRT effects. tmux, not a retro movie prop.
+Visual register: strict. Monospace, **two chromatic colors over a neutral
+scale** — a muted phosphor green for `alive` and amber for `unknown`, everything
+else grey. No animation, no blinking cursor, no CRT effects, no scanlines, no
+glow. tmux, not a retro movie prop.
+
+Amber is reserved for epistemic uncertainty and is never spent on `cold`. A cold
+district is not a warning; it is a fact, and colouring it as a problem would
+editorialise the census.
+
+Every text colour clears WCAG AA (4.5:1) against the ground. The secondary grey
+is `#8a938c` at 6.16:1 — the obvious `#6b7268` measures 3.93:1 and fails. The
+darkest token is reserved for hairlines and never carries text.
 
 ```
 zae.life ~ $ whoami && districts --status
 
-  ██ zaebee · witness
-     ‹tagline: the author's to write›
+  zaebee · witness, apprentice
+  ‹tagline: the author's to write›
 
-  22 districts · 4 alive · 13 cold · 5 offline · checked 6 min ago
+  22 districts · 4 alive · 13 cold · 5 offline
+  snapshot · 6 min ago
+  ● answering now    ○ was deployed, silent now    · never a web service
 
-  ●  car        car.zae.life         200 OK      27c / 3d   nov'25
-  ●  comics     comics.zae.life      200 OK      24c / 2d   nov'25
   ●  aura       aura.zae.life        200 OK     517c / 41d  aug'26
-  ●  quiz       quiz.zae.life        200 OK     140c / 6d   sep'25
+                Agent negotiation infrastructure
+  ●  car        car.zae.life         200 OK      27c / 3d   nov'25
+                Accident damage assessment from photos
   ○  chat       chat.zae.life        timeout    255c / 11d  sep'25
   ○  medicine   medicine.zae.life    timeout    193c / 5d   oct'25
+  ·  hivemark   —                    no service   66c / 2d   aug'26
   ...
 
   13 districts are not answering. That is accurate — I have not
   redeployed them. Claiming otherwise would have been easier.
 
-zae.life ~ $ _        cd <district> · log · me · help
+zae.life ~ $ _        click anything, or type — cd <district> · log · me · help
 ```
 
 Counts and the tagline above are illustrative. Real counts follow from the
 allowlist (see Open questions); the tagline is the author's to write.
+
+Three details in that block are load-bearing:
+
+- **The legend is inline, not a panel.** `cold` is not a word a visitor knows.
+  One grey line under the summary spends three seconds and removes the guessing.
+- **The plain-language line rides only on `alive` districts.** A visitor can go
+  and look at those four; describing all twenty-two doubles the list and buries
+  the map. The rest carry their description in the expanded card.
+- **Freshness sits on its own line, above the districts.** It qualifies every
+  status below it, so it reads before them rather than as a footnote.
+
+On narrow viewports the host column is dropped — it is recoverable from the
+district name — which brings the row inside a 375px screen without horizontal
+scrolling.
 
 ### Commands
 
@@ -147,15 +178,28 @@ audience.
 **Not in v1:** `ssh zae.life` as a real TUI (Bubble Tea / Textual). Desirable,
 deferred.
 
-## Pages
+## Pages: real routes, presented as tmux windows
 
 Three. No project detail pages — cards expand inline on the map.
 
-| Route | Content | Goal served |
-|---|---|---|
-| `/` | Positioning line + live map of districts, cards expand in place | Be found, playground |
-| `/log` | Journal entries | Think out loud |
-| `/me` | Who, what, contact — and the frame stated openly: whose apprentice, and why the author declines the role of judge. One screen, not a résumé | Be contacted |
+| Route | Window | Content | Goal served |
+|---|---|---|---|
+| `/` | `0:map` | Positioning line + live map of districts, cards expand in place | Be found, playground |
+| `/log`, `/log/<slug>` | `1:log` | Attestations | Think out loud |
+| `/me` | `2:me` | Who, what, contact — and the frame stated openly: whose apprentice, and why the author declines the role of judge. One screen, not a résumé | Be contacted |
+
+**Routes are real; windows are how they read.** The status line replaces the
+navbar and carries the whole navigation model, but underneath each window is an
+ordinary URL. Presentation-only windows would cost three things worth more than
+the purity: a shareable link to a single attestation, a working back button, and
+per-page indexing. A visitor should be able to send someone one entry, not one
+site.
+
+**The initial state must be server-rendered HTML.** Astro emits the map — every
+district, status and stat — as markup, and the command layer hydrates over it.
+If the map is assembled by script, a crawler sees an empty shell, and "be found"
+is the site's first stated goal. This also means the zero-interaction default
+holds before any JavaScript runs at all.
 
 **Explicitly out of scope for v1:** a list-view of projects (the map is the
 differentiator), a services/pricing page (repels peers; clients will write
@@ -351,7 +395,5 @@ Written test-first, per the existing workflow.
 2. **The positioning line.** The tagline is the author's to write.
 3. **The statement on `/me`.** The frame is stated openly by decision. Its
    wording is the author's and is deliberately not drafted in this spec.
-4. **Pages or tmux windows.** The prototype renders `/`, `/log` and `/me` as
-   tmux windows (`0:map 1:log 2:me`) on the status line rather than as routes,
-   which removes navigation from the page entirely. Proposed, pending the
-   author's call; if adopted, the Pages table becomes a window table.
+4. ~~Pages or tmux windows.~~ **Resolved:** real routes, presented as windows.
+   See Pages.

@@ -20,17 +20,32 @@ export function shortMonth(iso: string): string {
   return `${month}'${(m[1] as string).slice(2)}`;
 }
 
-export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {
-  const stats = d.stats ? `${d.stats.commits}c / ${d.stats.activeDays}d` : "—";
+export interface DistrictCells {
+  mark: string;
+  id: string;
+  host: string;
+  reply: string;
+  stats: string;
+  last: string;
+}
 
-  return (
-    `${MARK[d.status]}  ` +
-    pad(d.id, 13) +
-    (opts.narrow ? "" : pad(d.host ?? "—", 22)) +
-    pad(REPLY[d.status], 11) +
-    pad(stats, 11) +
-    shortMonth(d.stats?.last ?? "")
-  );
+/** The HTML map colours the mark and the reply, the plain-text branch does not.
+ *  Both take their column widths from here, so the two renderings cannot drift
+ *  into disagreeing about what the same district looks like. */
+export function districtCells(d: District, opts: { narrow?: boolean } = {}): DistrictCells {
+  return {
+    mark: `${MARK[d.status]}  `,
+    id: pad(d.id, 13),
+    host: opts.narrow ? "" : pad(d.host ?? "—", 22),
+    reply: pad(REPLY[d.status], 11),
+    stats: pad(d.stats ? `${d.stats.commits}c / ${d.stats.activeDays}d` : "—", 11),
+    last: shortMonth(d.stats?.last ?? ""),
+  };
+}
+
+export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {
+  const c = districtCells(d, opts);
+  return c.mark + c.id + c.host + c.reply + c.stats + c.last;
 }
 
 /** Takes the snapshot, not only its age. Freshness alone cannot distinguish a

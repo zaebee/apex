@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
 import type { District } from "../src/lib/districts";
-import { districtRow, LEGEND, pad, shortMonth, summaryLines } from "../src/lib/format";
+import {
+  districtCells,
+  districtRow,
+  LEGEND,
+  pad,
+  shortMonth,
+  summaryLines,
+} from "../src/lib/format";
 import type { HealthSnapshot } from "../src/lib/status";
 
 const d = (over: Partial<District> = {}): District => ({
@@ -41,6 +48,13 @@ test("a narrow row drops the host and fits a 375px screen", () => {
   const row = districtRow(d(), { narrow: true });
   expect(row).not.toContain("aura.zae.life");
   expect(row.length).toBeLessThanOrEqual(46);
+});
+
+test("the cells the html map colours concatenate to exactly the text row", () => {
+  for (const narrow of [false, true]) {
+    const c = districtCells(d(), { narrow });
+    expect(c.mark + c.id + c.host + c.reply + c.stats + c.last).toBe(districtRow(d(), { narrow }));
+  }
 });
 
 test("a district without stats shows a dash rather than zeroes", () => {

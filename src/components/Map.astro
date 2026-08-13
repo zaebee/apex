@@ -1,0 +1,54 @@
+---
+import { loadDistricts } from "../lib/districts";
+import { districtCells, summaryLines } from "../lib/format";
+import { freshness } from "../lib/freshness";
+import { TONE } from "../lib/status";
+
+const now = new Date();
+const { districts, health } = await loadDistricts();
+
+// summaryLines takes the snapshot, not only its age: a check can fail and still
+// stamp itself with the current time, and freshness alone would call that fresh
+const f = freshness(health?.checkedAt ?? null, now);
+const [counts, age, legend] = summaryLines(districts, health, now);
+
+const cold = districts.filter((d) => d.status === "cold").length;
+const ageIsSuspect = health?.ok !== true || f.stale;
+---
+
+<pre class="echo">zae.life ~ $ <b>whoami &amp;&amp; districts --status</b></pre>
+<pre>  <a href="/me">zaebee</a><span class="dim"> · witness, apprentice</span>
+<span class="warn">  ‹ tagline: yours to write ›</span>
+
+  {counts}
+<span class={ageIsSuspect ? "warn" : "dim"}>  {age}</span>
+<span class="dim">  {legend}</span>
+</pre>
+
+<div class="rows">
+  {
+    districts.map((d) => {
+      const c = districtCells(d);
+      return (
+        <button class="row" data-act="cd" data-id={d.id}>
+          <span class={TONE[d.status]}>{c.mark}</span>
+          {c.id}
+          <span class="dim host-col">{c.host}</span>
+          <span class={TONE[d.status]}>{c.reply}</span>
+          <span class="dim">
+            {c.stats}
+            {c.last}
+          </span>
+          {d.status === "alive" && d.what ? (
+            <span class="dim">{`\n   ${" ".repeat(13)}${d.what}`}</span>
+          ) : null}
+        </button>
+      );
+    })
+  }
+</div>
+
+<pre>
+<span class="dim">  {cold} districts are not answering. That is accurate — I have not</span>
+<span class="dim">  redeployed them. Claiming otherwise would have been easier.</span>
+</pre>

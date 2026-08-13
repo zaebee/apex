@@ -1,0 +1,28 @@
+---
+// Real links presented as tmux windows. Windows-only navigation would cost a
+// shareable link to a single attestation, a working back button, and per-page
+// indexing — all worth more than the purity.
+interface Props {
+  current: "map" | "log" | "me";
+}
+const { current } = Astro.props;
+
+const wins = [
+  { key: "map", href: "/", label: "0:map" },
+  { key: "log", href: "/log", label: "1:log" },
+  { key: "me", href: "/me", label: "2:me" },
+] as const;
+---
+
+<nav class="status" aria-label="windows">
+  <span class="session">[zae.life]</span>
+  {
+    wins.map((w) => (
+      <a href={w.href} aria-current={current === w.key ? "page" : undefined}>
+        {w.label}
+        {current === w.key ? "*" : ""}
+      </a>
+    ))
+  }
+  <span class="right">zaebee@apex</span>
+</nav>

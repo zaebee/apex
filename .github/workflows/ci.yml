@@ -31,13 +31,14 @@ jobs:
       # so without this the strict tsconfig is enforced nowhere
       - run: bun run typecheck
 
+      # Before the tests: tests/ssr.test.ts asserts against dist/, because the
+      # thing worth proving is that the built markup is complete without
+      # JavaScript, which cannot be checked from source.
+      - run: bun run build
+
       # lcov alongside the console output: the console form is for a human
       # reading the log, the lcov is the only form SonarCloud can import.
       - run: bun test --coverage --coverage-reporter=lcov --coverage-reporter=text
-
-      # `bun run build` joins this job in Task 8, when Astro is installed and
-      # there is something to build. Listing it now would fail on every run and
-      # train everyone to ignore a red check.
 
       - name: SonarQube Cloud scan
         # Inert until SONAR_TOKEN exists, so this can land before the project is

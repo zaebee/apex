@@ -16,14 +16,34 @@ if (!answerPath || pairs.length === 0) {
   process.exit(2);
 }
 
+async function read(path: string): Promise<string> {
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    console.error(`cannot read: ${path}`);
+    process.exit(2);
+  }
+  return file.text();
+}
+
 const sources: Record<string, string> = {};
 for (const pair of pairs) {
   const at = pair.indexOf("=");
-  if (at === -1) {
+  const name = at === -1 ? "" : pair.slice(0, at).trim();
+
+  // An unnamed source made the report print "searched: nothing" while a file
+  // had in fact been searched, and a repeated name silently searched only the
+  // last file while implying both. Either way the report misstates what it did,
+  // which is the one thing this tool may never do.
+  if (at === -1 || name === "") {
     console.error(`source must be given as <name>=<path>, got: ${pair}`);
     process.exit(2);
   }
-  sources[pair.slice(0, at)] = await Bun.file(pair.slice(at + 1)).text();
+  if (name in sources) {
+    console.error(`source name used twice: ${name}`);
+    process.exit(2);
+  }
+
+  sources[name] = await read(pair.slice(at + 1));
 }
 
-console.log(render(checkAnswer(await Bun.file(answerPath).text(), sources)));
+console.log(render(checkAnswer(await read(answerPath), sources)));

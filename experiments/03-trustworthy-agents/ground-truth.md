@@ -1,5 +1,9 @@
 # Ground truth, recorded before any witness answered
 
+> This is experiment 3, not a replication of experiment 1. The witnesses answer
+> in fresh sessions without project context, and there are two sources rather
+> than one. Counts are not comparable across the two runs.
+
 Source: https://www.anthropic.com/research/trustworthy-agents
 Read: 2026-08-13, by the synthesiser, **before** dispatching the task.
 
@@ -46,6 +50,27 @@ quantified risk assessment or severity ranking. No adoption or deployment
 figures. No implementation detail for Plan Mode or subagent coordination. No
 cost-benefit analysis.
 
+## The second source, and why there is one
+
+The witnesses answer in fresh sessions with no prior context — web search only.
+"In our context" would name nothing, so the prompt names the project by URL
+instead. That makes **zae.life a second source under test**, and unlike the
+article it is one the synthesiser knows completely, having built it.
+
+What is true of the site at dispatch, and therefore checkable:
+
+- 12 districts on the map; 2 alive, 6 cold, 4 offline at the last snapshot
+- 2 attestations, both published today, in the fields claimed / observed / attested
+- the journal was empty until today; the first entry is about three model
+  witnesses, one of which did not trace to its source
+- machine-readable: /districts.json, /health.json, /history.json, /llms.txt,
+  /rss.xml, /robots.txt, and a plain-text branch served to curl
+- health is probed every 30 minutes by a workflow; statistics weekly
+- there is **no AI feature on the site**: nothing generates text, no model runs
+  behind any route, and no agent card is published — deliberately
+- `why` and `learned` are unwritten for every district, and the tagline and the
+  statement on /me are empty slots, marked as such
+
 ## Predictions, registered in advance
 
 Recorded now so they are tests rather than observations made after the fact.
@@ -58,5 +83,9 @@ Recorded now so they are tests rather than observations made after the fact.
    than reporting them as listed.
 3. A witness that cites nothing checkable will be indistinguishable, on tone,
    from one that cites accurately.
+4. At least one witness will describe zae.life as having a capability it does
+   not have — most likely an AI or agent feature, since the site's subject
+   invites the assumption and its absence is the kind of thing a reader fills
+   in rather than checks.
 
 If none of these happens, that is a result and it will be recorded as one.

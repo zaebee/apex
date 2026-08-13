@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-08-13T00:54:08.227Z",
+  "checkedAt": "2026-08-13T09:01:25.118Z",
   "ok": true,
-  "lastOkAt": "2026-08-13T00:54:08.227Z",
+  "lastOkAt": "2026-08-13T09:01:25.118Z",
   "entries": {
     "aura.zae.life": {
       "host": "aura.zae.life",
@@ -17,6 +17,11 @@
       "host": "comics.zae.life",
       "ok": false,
       "code": null
+    },
+    "grani.zae.life": {
+      "host": "grani.zae.life",
+      "ok": true,
+      "code": 200
     }
   }
 }

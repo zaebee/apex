@@ -1,0 +1,35 @@
+---
+import Terminal from "../layouts/Terminal.astro";
+
+// The statement of the frame is the author's to write and is deliberately not
+// drafted here — see the spec's open questions. What ships in the meantime is
+// what can be measured, plus the slot, marked as a slot.
+const measured = [
+  "  22 project directories, over 1,600 commits since July 2025,",
+  "  most of them shipped in under a week.",
+].join("\n");
+---
+
+<Terminal
+  title="zaebee — zae.life"
+  description="Witness, apprentice. What I testify to, and what I do not."
+  current="me"
+>
+  <pre class="echo">zae.life ~ $ <b>me</b></pre>
+  <pre class="prose">  zaebee · witness, apprentice
+
+<span class="warn">  ‹ your words: what you testify to, and why you decline the role of
+    judge. Stated openly, by your decision. Not drafted by anyone but you. ›</span>
+
+<span class="dim">  Measured rather than claimed:</span>
+{measured}
+
+  github     <a href="https://github.com/zaebee">github.com/zaebee</a>
+  writing    <a href="https://habr.com/ru/users/ZaeBest">habr.com/ru/users/ZaeBest</a>
+<span class="warn">  email      ‹ your public contact here ›</span>
+
+<span class="dim">  curl zae.life        the same thing, plain text, no browser</span>
+<span class="dim">  /districts.json      the merged record this site is drawn from</span>
+<span class="dim">  /health.json         the raw snapshot, with its timestamps</span>
+</pre>
+</Terminal>

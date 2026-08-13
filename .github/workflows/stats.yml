@@ -1,0 +1,41 @@
+name: stats
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      # Blobless clone: full commit history without file contents, so code never
+      # materialises in CI — only metadata does. A repo that cannot be read is
+      # omitted rather than zero-filled, and if none can be read the script exits
+      # non-zero without writing, so a revoked token cannot erase every
+      # previously observed statistic on the strength of a run that saw nothing.
+      - run: bun run scan
+        env:
+          # Fine-grained PAT, Contents: read-only, scoped to the repositories
+          # named in data/districts.toml and nothing else. Never the broad ghp_
+          # token, which carries repo, workflow, admin:org_hook and
+          # write:packages.
+          APEX_STATS_TOKEN: ${{ secrets.APEX_STATS_TOKEN }}
+
+      - run: |
+          git config user.name  "zae.life stats"
+          git config user.email "stats@zae.life"
+          git add data/stats.json
+          git diff --staged --quiet || git commit -m "chore: repository statistics"
+          git push

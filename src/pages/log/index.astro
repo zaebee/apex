@@ -1,0 +1,32 @@
+---
+import Terminal from "../../layouts/Terminal.astro";
+
+// Deliberately empty. The spec warns that an empty journal reads as abandoned
+// on day one, and that warning stands — but an invented entry would be worse on
+// a site whose subject is the difference between claiming and observing. The
+// page says what is true: the format exists, nothing has been published yet.
+const format = [
+  "  claimed    what was asserted",
+  "  observed   what I actually saw",
+  "  attested   what that supports, and what it does not",
+].join("\n");
+---
+
+<Terminal
+  title="Attestations — zae.life"
+  description="Claimed, observed, and what that does and does not support."
+  current="log"
+>
+  <pre class="echo">zae.life ~ $ <b>log</b></pre>
+  <pre class="prose">  0 attestations
+<span class="warn">  ‹ none published yet ›</span>
+
+<span class="dim">  An attestation has three fields:</span>
+
+<span class="dim">{format}</span>
+
+<span class="dim">  The third is the one that matters. Every entry ends by naming the</span>
+<span class="dim">  limit of its own testimony; one that cannot fill it honestly is not</span>
+<span class="dim">  ready, and none are ready yet.</span>
+</pre>
+</Terminal>

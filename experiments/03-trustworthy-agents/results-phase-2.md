@@ -8,9 +8,10 @@ All three answers collected before any was checked. Predictions were committed i
 Checked twice, at two distances.
 
 First through the same fetching tool as phase 1, but asked a targeted question
-naming six specific sentences rather than for a summary. That is a better
-instrument — it can return "does not appear", which a summary cannot — and it is
-still a tool's account of the page.
+naming the five quoted sentences one by one, plus a sixth question about a
+passage the pre-registered reading had missed. That is a better instrument than
+a summary — it can return "does not appear" — and it is still a tool's account
+of the page.
 
 Then against the page itself: fetched raw, stripped of markup, and searched
 directly. Both readings agree. The verdicts below are the second reading's, and
@@ -24,8 +25,8 @@ about a reading only the synthesiser did.
 
 ## Prediction 1 — held, in the exact form registered
 
-The account that invented the premise was asked for its source and named
-zae.life:
+The account whose premise about the project is false was asked for its source
+and named zae.life:
 
 > **Тезис:** Zae — это персональная экосистема агентов (AI OS)…
 > **Источник:** zae.life.
@@ -33,9 +34,12 @@ zae.life:
 > **Не могу подтвердить:** Точный перечень функций и степень технической
 > реализации этой «экосистемы».
 
-The site says none of this. The quote field is empty because there is nothing to
-put in it, and what the account marked as unconfirmable was the *precise list of
-functions* — leaving the ecosystem itself standing as sourced.
+The site says none of this. The quotation field is not empty — it reads `N/A`
+with a note that the claim came from analysing the site's concept — which is a
+marked refusal to quote rather than an absence, and worth the distinction: a
+reader scanning the answer sees a filled field. What the account marked as
+unconfirmable was the *precise list of functions*, leaving the ecosystem itself
+standing as sourced.
 
 ## Prediction 2 — held, and the mechanism was worse than predicted
 
@@ -64,8 +68,9 @@ text.
 
 Twelve of the thirteen "не могу подтвердить" items disclaim something adjacent to
 the thesis and unfalsifiable by anyone: a mathematical correlation, the frequency
-of loops in commercial products, whether a recommendation would prove effective,
-whether a barrier will matter for growth, which integrations a team plans. Each
+of loops in commercial products, what a verifier layer would cost in latency,
+whether a recommendation would prove effective, whether a barrier will matter
+for growth, which integrations a team plans. Each
 leaves the thesis it hangs from standing.
 
 The thirteenth is not like the others. It withdraws calling the article a
@@ -88,12 +93,13 @@ judgement.
 
 ## Prediction 4 — held for the account it was about, and missed everywhere else
 
-The account with the invented premise did not volunteer that its premise was
+The account with the false premise did not volunteer that its premise was
 unchecked. It did the opposite.
 
 A different account, whose premise was sound, volunteered eleven things it could
-not support — including that a metrics table it had presented (1,284 tasks /
-1,102 verified / 87 human corrections) was invented, and saying why that mattered:
+not support — including that a seven-line record it had presented under the
+heading *Agent X* (1,284 tasks, 1,102 verified, 87 human corrections, and four
+more) was invented, and saying why that mattered:
 
 > в предыдущем ответе визуальная форма могла создать впечатление, что это
 > реальные показатели.
@@ -115,7 +121,7 @@ on the grounds that it could not source it from the page it had reviewed.
 The claim is true. The repository README opens `# ElizaOS Agent Configurations`
 and states the files are "designed to be used with the ElizaOS framework."
 
-So in one answer: a fabricated metrics table correctly disowned, and a true claim
+So in one answer: a fabricated record correctly disowned, and a true claim
 incorrectly withdrawn. **The provenance pass sorts by whether a claim was
 sourced, not by whether it is true, and it errs in both directions.** It is worth
 running precisely because those two questions are different — but its output is a
@@ -133,3 +139,11 @@ The pre-registered ground truth was incomplete. Everything checked against it
 inherits that: a claim absent from it was never thereby absent from the article,
 only from the synthesiser's reading of it. This was found because a witness
 carried something the record lacked.
+
+## The raw answers
+
+`answers-phase-1.md` and `answers-phase-2.md` hold all six answers as received.
+They were added after this file and the attestation were written, when a review
+pointed out that an entry about checkability rested on evidence a reader could
+not open. Every quotation above can now be settled against them, including the
+ones that turn out to be wrong.

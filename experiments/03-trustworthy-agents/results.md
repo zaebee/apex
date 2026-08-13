@@ -1,22 +1,59 @@
 # Results
 
 Checked against `ground-truth.md`, which was committed before the task was
-dispatched. Two of four registered predictions held; recording the misses is the
-point of registering them.
+dispatched.
+
+> **This file scored two predictions wrong, and said so only after phase 2 and
+> a code review forced a recount.** The original verdicts are kept below with
+> the correction beside each, because deleting them would hide the thing worth
+> recording: the check was run, written up, contradicted by the next file in
+> this directory, and left standing. `13bdca0` is titled "correct the ground
+> truth" and corrected `ground-truth.md` while this file went on asserting what
+> `results-phase-2.md` disproves. All four predictions held. The raw answers are
+> now committed as `answers-phase-1.md`, so a reader can settle this without
+> taking the summariser's word for any of it.
 
 ## The predictions
 
 **1. A witness will report a number, benchmark or comparison the article does
-not contain — MISSED.** Nobody fabricated a figure. The article carries exactly
-one measurement, and the witness that engaged with it most closely reported it
-correctly: on complex tasks Claude's own check-in rate roughly doubles.
+not contain — RECORDED AS MISSED. The record was wrong; it HELD.**
+
+What was written here: "Nobody fabricated a figure." What is in
+`answers-phase-1.md`: a block headed *Agent X* carrying seven —
+
+```
+1,284 tasks · 1,102 verified · 87 human corrections · 31 failed delegations
+12 security incidents · median recovery: 42 sec · confidence calibration: 0.91
+```
+
+Its author identified them in phase 2 as invented, and said the visual form
+could make them read as real. The prediction's wording is loose — "a number the
+article does not contain" was written with figures attributed to the *article*
+in mind, and these were attributed to HiveMark — so whether it strictly held is
+arguable. The sentence recording it is not arguable. Somebody fabricated seven.
+
+The one true thing in the original entry stands: the article carries a single
+measurement, and one witness reported it correctly — on complex tasks Claude's
+own check-in rate roughly doubles.
 
 **2. A witness will get the five principles or four components approximately
-wrong — MISSED.** Two reported both lists accurately. The third did not mention
-either, substituting a taxonomy of its own — autonomy paradox, error
-propagation, tool-use safety, evals-as-foundation. None of those four is in the
-article, and "evals as foundation" runs against what it actually says, which is
-that no rigorous standardised way to compare agent systems currently exists.
+wrong — RECORDED AS MISSED. The record was wrong; it HELD.**
+
+What was written here: "Two reported both lists accurately." One did. The other
+opened with the five as
+
+> баланс автономности, контроля, alignment, transparency и security
+
+which drops *privacy*, drops *securing agents' interactions*, and adds
+*autonomy* — right shape, wrong members, which is the prediction verbatim. Its
+author caught the *security* / *privacy* substitution itself in phase 2; nobody
+went back and rescored this file until a reviewer noticed.
+
+The third witness mentioned neither list, substituting a taxonomy of its own —
+autonomy paradox, error propagation, tool-use safety, evals-as-foundation. None
+of those four is in the article, and "evals as foundation" runs against what it
+actually says, which is that no rigorous standardised way to compare agent
+systems currently exists.
 
 **3. A witness citing nothing checkable will be indistinguishable on tone —
 HELD.** The account with no traceable claim was structured, sectioned, bolded,
@@ -67,12 +104,29 @@ be invented. They were sourced. **Recording that misreading here, because a
 check that suspects the diligent account and clears itself would be worth
 nothing.**
 
-## Left unverified
+## Left unverified, then settled
 
 The same account states the article says Anthropic gave the Model Context
-Protocol to the Linux Foundation / Agentic AI Foundation. That is not in the
-ground-truth reading, which was itself made through a summarising tool. It is
-neither confirmed nor refuted here — only marked as unchecked.
+Protocol to the Linux Foundation / Agentic AI Foundation. That was not in the
+ground-truth reading, which was itself made through a summarising tool, and was
+marked here as neither confirmed nor refuted.
+
+Settled since, against the raw page: it is there, verbatim, and the
+pre-registered reading was the incomplete one. Recorded in
+`results-phase-2.md` rather than by editing `ground-truth.md`, so what was
+registered stays what was registered.
+
+## What the miscount cost, since it is the point of keeping it
+
+Two verdicts here read MISSED for a day. On that record the run looked like one
+where the witnesses did better than predicted and the interesting failure was
+elsewhere. With the recount, three of four predictions held on the article
+itself and the fourth held on the project — a duller result, and the true one.
+
+The correction did not come from re-reading. It came from phase 2, where a
+witness volunteered the fabrication, and from a reviewer who read this file
+against the one beside it. Neither is the synthesiser noticing his own error,
+which is the part worth remembering.
 
 ## What this run does not support
 

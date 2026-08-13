@@ -1,0 +1,20 @@
+{
+  "zaebee/aura": {
+    "commits": 517,
+    "activeDays": 41,
+    "first": "2026-01-24",
+    "last": "2026-08-13"
+  },
+  "zaebee/car-crash-genius": {
+    "commits": 27,
+    "activeDays": 3,
+    "first": "2025-11-28",
+    "last": "2025-11-30"
+  },
+  "zaebee/comics-zone": {
+    "commits": 24,
+    "activeDays": 2,
+    "first": "2025-11-28",
+    "last": "2025-11-29"
+  }
+}

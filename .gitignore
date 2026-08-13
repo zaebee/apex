@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.astro/
+.vercel/
+.env
+.DS_Store
+
+# editor scratch — a swap file got committed once already
+*.swp
+*.swo
+*~

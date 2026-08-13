@@ -1,0 +1,35 @@
+# Nothing appears on the map unless it has a stanza here.
+# Machines own the numbers in stats.json and health.json.
+# This file is the author's alone; no workflow may write to it.
+#
+# why and learned are deliberately absent until written. The site renders them
+# as ‹ not written yet ›, which is true, rather than filling them with text
+# nobody meant.
+
+[aura]
+repo = "zaebee/aura"
+host = "aura.zae.life"
+title = "aura"
+what = "Agent negotiation infrastructure"
+
+[car]
+repo = "zaebee/car-crash-genius"
+host = "car.zae.life"
+title = "car"
+what = "Accident damage assessment from photos"
+
+[comics]
+repo = "zaebee/comics-zone"
+host = "comics.zae.life"
+title = "comics"
+what = "An endless comic where the reader is the hero"
+
+[hivemark]
+repo = "zaebee/hivemark"
+title = "hivemark"
+what = "Track records for code-review agents"
+
+[house]
+repo = "zaebee/house"
+title = "house"
+what = "20.9 sotki in Vologda oblast. Not software."

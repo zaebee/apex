@@ -69,6 +69,35 @@ test("no input combination can produce alive without a successful observation", 
   }
 });
 
+// The tests above all build snapshots through the typed `snap()` helper, so
+// none of them ever hands resolveStatus a value outside the declared interface.
+// health.json is machine-written JSON read back through a bare cast, so that is
+// exactly where the interface stops being a guarantee. These parse real text.
+
+test("a snapshot whose booleans arrived as strings is unknown, not alive", () => {
+  const parsed = JSON.parse(
+    '{"checkedAt":"2026-08-13T10:00:00.000Z","ok":"false","entries":{"car.zae.life":{"host":"car.zae.life","ok":"false","code":null}}}',
+  );
+  expect(resolveStatus({ host: "car.zae.life" }, parsed)).toBe("unknown");
+});
+
+test("a truthy non-boolean ok on an entry is unknown, not alive", () => {
+  const parsed = JSON.parse(
+    '{"checkedAt":"t","ok":true,"entries":{"x":{"host":"x","ok":"yes","code":200}}}',
+  );
+  expect(resolveStatus({ host: "x" }, parsed)).toBe("unknown");
+});
+
+test("an entry missing its ok field is unknown, not cold", () => {
+  const parsed = JSON.parse('{"checkedAt":"t","ok":true,"entries":{"x":{}}}');
+  expect(resolveStatus({ host: "x" }, parsed)).toBe("unknown");
+});
+
+test("a snapshot missing ok entirely is unknown", () => {
+  const parsed = JSON.parse('{"checkedAt":"t","entries":{"x":{"host":"x","ok":true,"code":200}}}');
+  expect(resolveStatus({ host: "x" }, parsed)).toBe("unknown");
+});
+
 test("amber is reserved for unknown and never spent on cold", () => {
   expect(TONE.unknown).toBe("warn");
   expect(TONE.cold).toBe("dim");

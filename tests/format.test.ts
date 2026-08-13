@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { District } from "../src/lib/districts";
 import { districtRow, LEGEND, pad, shortMonth, summaryLines } from "../src/lib/format";
-import { freshness } from "../src/lib/freshness";
+import type { HealthSnapshot } from "../src/lib/status";
 
 const d = (over: Partial<District> = {}): District => ({
   id: "aura",
@@ -49,30 +49,54 @@ test("a district without stats shows a dash rather than zeroes", () => {
   expect(row).not.toContain("0c / 0d");
 });
 
+const NOW = new Date("2026-08-13T10:00:00.000Z");
+const snap = (over: Partial<HealthSnapshot> = {}): HealthSnapshot => ({
+  checkedAt: "2026-08-13T09:54:00.000Z",
+  ok: true,
+  entries: {},
+  ...over,
+});
+
 test("the summary counts every status and carries the snapshot age", () => {
   const lines = summaryLines(
     [d(), d({ id: "chat", status: "cold" }), d({ id: "house", status: "offline" })],
-    freshness("2026-08-13T09:54:00.000Z", new Date("2026-08-13T10:00:00.000Z")),
+    snap(),
+    NOW,
   );
   expect(lines[0]).toBe("3 districts · 1 alive · 1 cold · 1 offline");
   expect(lines[1]).toBe("snapshot · 6 min ago");
 });
 
 test("a stale snapshot says so on the summary line", () => {
-  const lines = summaryLines(
-    [d()],
-    freshness("2026-08-13T06:00:00.000Z", new Date("2026-08-13T10:00:00.000Z")),
-  );
+  const lines = summaryLines([d()], snap({ checkedAt: "2026-08-13T06:00:00.000Z" }), NOW);
   expect(lines[1]).toContain("stale");
 });
 
 test("a snapshot that never happened is named, not omitted", () => {
-  const lines = summaryLines([d()], freshness(null, new Date()));
+  const lines = summaryLines([d()], null, NOW);
   expect(lines[1]).toContain("health unknown");
+  expect(lines[1]).toContain("no successful check on record");
+});
+
+// a check can fail and still stamp itself with the current time; freshness alone
+// would call that "just now" and vouch for testimony that does not exist
+test("a failed but fresh check reads as unknown, never as a fresh snapshot", () => {
+  const lines = summaryLines([d({ status: "unknown" })], snap({ ok: false, lastOkAt: null }), NOW);
+  expect(lines[1]).toContain("health unknown");
+  expect(lines[1]).not.toContain("snapshot · ");
+});
+
+test("a failed check reports how old the last successful one is", () => {
+  const lines = summaryLines(
+    [d({ status: "unknown" })],
+    snap({ ok: false, lastOkAt: "2026-08-13T06:00:00.000Z" }),
+    NOW,
+  );
+  expect(lines[1]).toBe("health unknown — last successful check 4h ago");
 });
 
 test("unknown districts are counted rather than folded into cold", () => {
-  const lines = summaryLines([d({ status: "unknown" })], freshness(null, new Date()));
+  const lines = summaryLines([d({ status: "unknown" })], null, NOW);
   expect(lines[0]).toContain("1 unknown");
 });
 

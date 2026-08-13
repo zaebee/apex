@@ -61,7 +61,7 @@ test("statsForRepo reads a real repository", async () => {
 test("statsForRepo on a directory that is not a repository throws rather than reporting zero", async () => {
   const dir = await mkdtemp(join(tmpdir(), "apex-empty-"));
   try {
-    expect(statsForRepo(dir)).rejects.toThrow();
+    await expect(statsForRepo(dir)).rejects.toThrow();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

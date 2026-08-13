@@ -75,6 +75,15 @@ if (import.meta.main) {
     }
   }
 
+  // Omitting a repo that failed is right; omitting all of them and writing the
+  // empty result is not. A revoked token fails every clone, and writing {} would
+  // erase every previously observed statistic on the strength of a run that
+  // observed nothing. Keep the old testimony and fail loudly instead.
+  if (repos.length > 0 && Object.keys(out).length === 0) {
+    console.error(`refusing to write data/stats.json: 0/${repos.length} repos could be read`);
+    process.exit(1);
+  }
+
   await Bun.write("data/stats.json", `${JSON.stringify(out, null, 2)}\n`);
   console.log(`wrote data/stats.json — ${Object.keys(out).length}/${repos.length} repos`);
 }

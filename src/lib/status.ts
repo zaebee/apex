@@ -13,6 +13,10 @@ export interface HealthSnapshot {
   checkedAt: string;
   /** False when the check itself failed. The snapshot then carries no testimony. */
   ok: boolean;
+  /** When a check last succeeded, carried forward across failed runs so the page
+   *  can say how old the last real observation is instead of only that there
+   *  isn't a current one. */
+  lastOkAt?: string | null;
   entries: Record<string, HealthEntry>;
 }
 
@@ -50,12 +54,15 @@ export const TONE: Record<Status, "alive" | "dim" | "warn"> = {
 export function resolveStatus(d: StatusInput, snapshot: HealthSnapshot | null): Status {
   if (!d.host) return "offline";
   if (d.visibility === "private") return "private";
-  // no snapshot, or a snapshot whose own check failed — both are absence of
-  // observation, and absence of observation is never green
-  if (!snapshot?.ok) return "unknown";
+  // Compared by value, never by truthiness. These files are machine-written
+  // JSON read back through a bare cast, so a producer bug or a botched merge
+  // can put a string where a boolean belongs — and the string "false" is
+  // truthy, which would render a snapshot that says false twice as green.
+  // Anything that is not exactly `true` or exactly `false` was not observed.
+  if (snapshot?.ok !== true) return "unknown";
 
   const entry = snapshot.entries[d.host];
-  if (!entry) return "unknown";
-
-  return entry.ok ? "alive" : "cold";
+  if (entry?.ok === true) return "alive";
+  if (entry?.ok === false) return "cold";
+  return "unknown";
 }

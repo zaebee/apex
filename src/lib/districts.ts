@@ -33,18 +33,28 @@ interface Stanza {
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.length > 0 ? v : null);
 
-/** Reads only the four numeric fields. Anything else a stats file happens to
- *  carry is discarded here — this is where the ownership split is enforced,
- *  not by trusting the producer to behave. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Takes two numbers and two dates, and nothing else. The dates are shape-checked
+ *  rather than merely type-checked: `first` and `last` are strings, and a string
+ *  field copied verbatim out of a machine-written file is a channel through which
+ *  automation could put text into the site's own testimony — /districts.json
+ *  publishes this record verbatim. A value that is not a date was not a date
+ *  anyone observed, so it becomes "", the same value computeStats uses for
+ *  no-date-observed. This is where the ownership split is enforced, not by
+ *  trusting the producer to behave. */
 function takeStats(raw: unknown): RepoStats | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.commits !== "number" || typeof r.activeDays !== "number") return null;
+
+  const date = (v: unknown): string => (typeof v === "string" && ISO_DATE.test(v) ? v : "");
+
   return {
     commits: r.commits,
     activeDays: r.activeDays,
-    first: typeof r.first === "string" ? r.first : "",
-    last: typeof r.last === "string" ? r.last : "",
+    first: date(r.first),
+    last: date(r.last),
   };
 }
 
@@ -53,9 +63,19 @@ export function mergeDistricts(
   stats: Record<string, RepoStats>,
   health: HealthSnapshot | null,
 ): District[] {
-  const table = parseToml(tomlText) as Record<string, Stanza>;
+  const table = parseToml(tomlText) as Record<string, unknown>;
 
-  return Object.entries(table).map(([id, s]) => {
+  return Object.entries(table).map(([id, raw]) => {
+    // A top-level scalar — a stray `tagline = "..."` above the first stanza —
+    // would otherwise become a district nobody declared. The allowlist is
+    // authored by hand, so a malformed one is an author error worth failing the
+    // build on rather than rendering as an entity.
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error(
+        `districts.toml: "${id}" is not a stanza. Every top-level entry must be a [table].`,
+      );
+    }
+    const s = raw as Stanza;
     const repo = str(s.repo);
     const host = str(s.host);
     return {

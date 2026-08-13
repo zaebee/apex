@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { hostsFromToml } from "../src/lib/hosts";
 import { buildSnapshot, probe } from "../src/lib/probe";
+import { resolveStatus } from "../src/lib/status";
 
 const okFetch = (async () => new Response("", { status: 200 })) as unknown as typeof fetch;
 const errFetch = (async () => new Response("", { status: 502 })) as unknown as typeof fetch;
@@ -35,10 +36,48 @@ test("a snapshot of successful probes is ok and carries every host", async () =>
   expect(s.checkedAt).toBe("2026-08-13T10:00:00.000Z");
 });
 
+/** Answers for the control host, refuses for everything else — the shape of a
+ *  working runner looking at a constellation that is genuinely down. */
+const districtsDownFetch = (async (url: string | URL) => {
+  if (String(url).includes("github.com")) return new Response("", { status: 200 });
+  throw new Error("ECONNREFUSED");
+}) as unknown as typeof fetch;
+
 test("individual failures do not make the snapshot itself untrustworthy", async () => {
-  const s = await buildSnapshot(["a.zae.life"], new Date(), throwFetch);
+  const s = await buildSnapshot(["a.zae.life"], new Date(), districtsDownFetch);
   expect(s.ok).toBe(true);
   expect(s.entries["a.zae.life"]?.ok).toBe(false);
+});
+
+test("a check that could not reach even the control host carries no testimony", async () => {
+  const s = await buildSnapshot(["a.zae.life"], new Date(), throwFetch);
+  expect(s.ok).toBe(false);
+  // and so every district resolves to unknown rather than to cold
+  expect(resolveStatus({ host: "a.zae.life" }, s)).toBe("unknown");
+});
+
+test("the control host is never published as a district", async () => {
+  const s = await buildSnapshot(["a.zae.life"], new Date(), okFetch);
+  expect(Object.keys(s.entries)).toEqual(["a.zae.life"]);
+});
+
+test("a successful check records when it succeeded", async () => {
+  const now = new Date("2026-08-13T10:00:00.000Z");
+  const s = await buildSnapshot(["a.zae.life"], now, okFetch);
+  expect(s.lastOkAt).toBe("2026-08-13T10:00:00.000Z");
+});
+
+test("a blind check carries forward the last time one succeeded", async () => {
+  const previous = await buildSnapshot(
+    ["a.zae.life"],
+    new Date("2026-08-13T06:00:00.000Z"),
+    okFetch,
+  );
+  const s = await buildSnapshot(["a.zae.life"], new Date("2026-08-13T10:00:00.000Z"), throwFetch, {
+    previous,
+  });
+  expect(s.ok).toBe(false);
+  expect(s.lastOkAt).toBe("2026-08-13T06:00:00.000Z");
 });
 
 test("an empty host list produces a snapshot that admits it observed nothing", async () => {

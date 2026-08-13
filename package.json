@@ -7,6 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "bun test",
+    "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "fmt": "biome check --write .",
     "scan": "bun run scripts/scan.ts",

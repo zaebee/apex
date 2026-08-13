@@ -13,6 +13,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      # biome does not typecheck and bun test strips types without checking them,
+      # so without this the strict tsconfig is enforced nowhere
+      - run: bun run typecheck
       - run: bun test
       # `bun run build` joins this job in Task 8, when Astro is installed and
       # there is something to build. Listing it now would fail on every run and

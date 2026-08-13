@@ -1,6 +1,6 @@
 import type { District } from "./districts";
-import type { Freshness } from "./freshness";
-import { MARK, REPLY, type Status } from "./status";
+import { freshness } from "./freshness";
+import { type HealthSnapshot, MARK, REPLY, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
   s.length >= n ? s : s + " ".repeat(n - s.length);
@@ -33,7 +33,16 @@ export function districtRow(d: District, opts: { narrow?: boolean } = {}): strin
   );
 }
 
-export function summaryLines(districts: District[], f: Freshness): string[] {
+/** Takes the snapshot, not only its age. Freshness alone cannot distinguish a
+ *  check that worked from one that ran, failed, and stamped itself with the
+ *  current time — and printing a confident "snapshot · just now" above rows that
+ *  are all `?` would have the status line vouching for testimony that does not
+ *  exist. */
+export function summaryLines(
+  districts: District[],
+  health: HealthSnapshot | null,
+  now: Date,
+): string[] {
   const n = (s: Status) => districts.filter((d) => d.status === s).length;
 
   const counts = [
@@ -45,12 +54,18 @@ export function summaryLines(districts: District[], f: Freshness): string[] {
   if (n("private")) counts.push(`${n("private")} private`);
   if (n("unknown")) counts.push(`${n("unknown")} unknown`);
 
-  const age =
-    f.label === "never"
-      ? "health unknown — no successful check on record"
-      : f.stale
-        ? `snapshot · ${f.label} · stale`
-        : `snapshot · ${f.label}`;
+  const f = freshness(health?.checkedAt ?? null, now);
+
+  let age: string;
+  if (health?.ok === true && f.label !== "never") {
+    age = f.stale ? `snapshot · ${f.label} · stale` : `snapshot · ${f.label}`;
+  } else {
+    const last = freshness(health?.lastOkAt ?? null, now);
+    age =
+      last.label === "never"
+        ? "health unknown — no successful check on record"
+        : `health unknown — last successful check ${last.label}`;
+  }
 
   return [counts.join(" · "), age, LEGEND];
 }

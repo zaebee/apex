@@ -85,6 +85,33 @@ test("prose absent from the toml stays null so the page can mark it unwritten", 
   expect(hivemark?.learned).toBeNull();
 });
 
+test("stats cannot supply text through the date fields either", () => {
+  const poisoned = {
+    "zaebee/hivemark": {
+      commits: 1,
+      activeDays: 1,
+      first: "<script>alert(1)</script>",
+      last: "REDEPLOYED, ALL GREEN",
+    },
+  } as unknown as typeof stats;
+
+  const hivemark = mergeDistricts(toml, poisoned, health).find((d) => d.id === "hivemark");
+  expect(hivemark?.stats?.last).toBe("");
+  expect(hivemark?.stats?.first).toBe("");
+  expect(hivemark?.stats?.commits).toBe(1);
+});
+
+test("a real date survives the shape check", () => {
+  const aura = mergeDistricts(toml, stats, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.last).toBe("2026-08-13");
+});
+
+test("a stray top-level scalar is an authoring error, not a phantom district", () => {
+  expect(() =>
+    mergeDistricts('tagline = "stray line"\n\n[aura]\nhost = "a.zae.life"\n', {}, null),
+  ).toThrow(/tagline/);
+});
+
 test("prose present in the toml survives the merge", () => {
   const aura = mergeDistricts(toml, stats, health).find((d) => d.id === "aura");
   expect(aura?.why).toBe("Wanted agents that could settle a price without me.");

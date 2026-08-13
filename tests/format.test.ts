@@ -66,8 +66,8 @@ test("a district without stats shows a dash rather than zeroes", () => {
   expect(row).not.toContain("0c / 0d");
 });
 
-test("a row quotes the observed code rather than a label for the status", () => {
-  expect(districtRow(d({ status: "cold", code: 502 }))).toContain("502");
+test("a row reports what was observed, never a label for the status", () => {
+  expect(districtRow(d({ status: "cold", code: 502 }))).toContain("bad gateway");
   expect(districtRow(d({ status: "cold", code: 502 }))).not.toContain("timeout");
   expect(districtRow(d({ status: "cold", code: null }))).toContain("no answer");
 });

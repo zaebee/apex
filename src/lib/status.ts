@@ -47,12 +47,31 @@ export const MARK: Record<Status, string> = {
  *  over it names a failure mode nobody saw. When there is a code, the code is
  *  the testimony; when the connection never completed, there is no code and
  *  "no answer" is all that can honestly be said. */
+/** The standard reason phrase for a code, where one exists. Not an
+ *  interpretation added on top: 502 *is* bad gateway by definition, and a
+ *  visitor reading "502" beside "no answer" is being handed two different
+ *  levels of abstraction and asked to reconcile them. The raw code stays in
+ *  the card and in /health.json, so nothing is lost. */
+const REASON: Record<number, string> = {
+  400: "bad request",
+  401: "unauthorized",
+  403: "forbidden",
+  404: "not found",
+  408: "timeout",
+  429: "throttled",
+  500: "server error",
+  502: "bad gateway",
+  503: "unavailable",
+  504: "timeout",
+};
+
 export function replyFor(status: Status, code: number | null): string {
   switch (status) {
     case "alive":
       return code === null ? "ok" : `${code} OK`;
     case "cold":
-      return code === null ? "no answer" : String(code);
+      if (code === null) return "no answer";
+      return REASON[code] ?? String(code);
     case "offline":
       return "no service";
     case "private":

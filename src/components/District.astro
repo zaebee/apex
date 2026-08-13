@@ -36,6 +36,15 @@ interface Line {
   cls: string;
 }
 const lines: Line[] = [];
+// the phrase and the number together: the row has room for one, the card for both
+if (d.host) {
+  const reply = districtCells(d).reply.trim();
+  lines.push({
+    label: label("status"),
+    value: d.code === null || reply.includes(String(d.code)) ? reply : `${reply} · ${d.code}`,
+    cls: "",
+  });
+}
 if (d.repo) lines.push({ label: label("repo"), value: `github.com/${d.repo}`, cls: "" });
 if (d.stats) {
   const unit = d.stats.activeDays === 1 ? "day" : "days";

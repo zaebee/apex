@@ -279,4 +279,18 @@ function openFromHash() {
 window.addEventListener("hashchange", openFromHash);
 openFromHash();
 
+/** Typing should just work. Without this a visitor has to click the terminal
+ *  first — and the one instruction on screen says "click anything, or type",
+ *  which was only half true. Modifier combinations and keys aimed at browser
+ *  chrome are left alone. */
+window.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const active = document.activeElement;
+  if (active === sink) return;
+  // a real control has focus and should keep it
+  if (active instanceof HTMLElement && active.closest("a, button, summary, input")) return;
+  if (e.key.length !== 1 && e.key !== "Backspace" && e.key !== "Enter") return;
+  sink?.focus();
+});
+
 sink.focus();

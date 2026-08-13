@@ -57,10 +57,18 @@ function takeStats(raw: unknown): RepoStats | null {
   if (typeof r.commits !== "number" || typeof r.activeDays !== "number") return null;
 
   const date = (v: unknown): string => (typeof v === "string" && ISO_DATE.test(v) ? v : "");
-  // shape-checked like the dates: a timestamp copied verbatim out of a
-  // machine-written file is another channel for text to reach the page
-  const stamp = (v: unknown): string | null =>
-    typeof v === "string" && !Number.isNaN(Date.parse(v)) ? v : null;
+  // Shape-checked like the dates, and for the same reason — but Date.parse is
+  // not a shape check. It accepts "fresh as of 2026-08-13", and it reads
+  // "maybe 2026" as May 2026, so prose from a machine-written file became a
+  // confident "read 10h ago" on the card and shipped verbatim in
+  // /districts.json. Only a value that round-trips through toISOString is the
+  // instant it claims to be. A stamp in the future was not an observation.
+  const stamp = (v: unknown): string | null => {
+    if (typeof v !== "string") return null;
+    const t = Date.parse(v);
+    if (Number.isNaN(t) || new Date(t).toISOString() !== v || t > Date.now()) return null;
+    return v;
+  };
 
   return {
     commits: r.commits,

@@ -54,7 +54,7 @@ const HELP = [
   "  help            this",
   "",
   "  ● answering now    ○ was deployed, silent now    · never a web service",
-  "  ▪ private          ? the check itself could not observe",
+  "  ▪ private          ? not observed — the check failed, or something else answered",
   "",
   "  ↑ ↓ for history. The map ran before you arrived — nothing needed typing.",
 ].join("\n");
@@ -63,6 +63,8 @@ interface PingEntry {
   host: string;
   ok: boolean;
   code: number | null;
+  finalUrl?: string | null;
+  offSite?: boolean;
 }
 interface PingSnapshot {
   checkedAt: string;
@@ -93,6 +95,13 @@ async function livePing(result: HTMLElement, signal: AbortSignal) {
 
     const rows = all
       .map((e) => {
+        // A host that sent the probe elsewhere is neither alive nor cold, and
+        // must read the same here as on the map. Rendering it from `ok` alone
+        // printed a hollow circle beside an HTTP code proving it was not silent.
+        if (e.offSite === true) {
+          const where = e.finalUrl ? ` → ${new URL(e.finalUrl).host}` : "";
+          return `  <span class="warn">?</span>  ${esc(e.host.padEnd(24))}${esc(`not this district${where}`)}`;
+        }
         const green = e.ok === true;
         const mark = `<span class="${green ? "alive" : "dim"}">${green ? "●" : "○"}</span>`;
         const reply = green

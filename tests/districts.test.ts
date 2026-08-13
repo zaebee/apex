@@ -150,3 +150,34 @@ test("statistics with no read time say nothing rather than implying now", () => 
   expect(aura?.stats?.readAt).toBeNull();
   expect(aura?.stats?.commits).toBe(517);
 });
+
+// Date.parse is not a shape check: it accepts "fresh as of 2026-08-13" and
+// reads "maybe 2026" as May. Prose from a machine-written file became a
+// confident "read 10h ago" on the card and shipped verbatim in districts.json.
+test("prose that Date.parse happens to accept is still not a read time", () => {
+  for (const bad of ["fresh as of 2026-08-13", "maybe 2026", "2026-08-13", "just now"]) {
+    const poisoned = {
+      "zaebee/aura": { ...stats["zaebee/aura"], readAt: bad },
+    } as unknown as typeof stats;
+    const aura = mergeDistricts(toml, poisoned, health).find((d) => d.id === "aura");
+    expect(aura?.stats?.readAt).toBeNull();
+  }
+});
+
+test("a read time in the future was not an observation", () => {
+  const ahead = new Date(Date.now() + 86_400_000).toISOString();
+  const poisoned = {
+    "zaebee/aura": { ...stats["zaebee/aura"], readAt: ahead },
+  } as unknown as typeof stats;
+  const aura = mergeDistricts(toml, poisoned, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.readAt).toBeNull();
+});
+
+test("a real instant round-trips and survives", () => {
+  const real = new Date(Date.now() - 3_600_000).toISOString();
+  const good = {
+    "zaebee/aura": { ...stats["zaebee/aura"], readAt: real },
+  } as unknown as typeof stats;
+  const aura = mergeDistricts(toml, good, health).find((d) => d.id === "aura");
+  expect(aura?.stats?.readAt).toBe(real);
+});

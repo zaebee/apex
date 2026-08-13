@@ -1,15 +1,24 @@
 import type { HealthEntry, HealthSnapshot } from "./status";
 
 /** `www.` is the one prefix that conventionally names the same site, so a
- *  redirect across it is not a redirect away from the district. Everything else
- *  is a different host, whatever it happens to serve. */
-const bare = (h: string) => h.replace(/^www\./i, "").toLowerCase();
+ *  redirect across it is not a redirect away from the district. A trailing root
+ *  dot names the same host too. Everything else is a different host, whatever
+ *  it happens to serve. */
+const bare = (h: string) =>
+  h
+    .replace(/\.$/, "")
+    .replace(/^www\./i, "")
+    .toLowerCase();
 
+/** Both sides go through the URL parser. `res.url` is always serialized, so a
+ *  Cyrillic host arrives back as punycode — comparing it against the raw string
+ *  from districts.toml reported a district as having redirected to its own
+ *  hostname, and marked a live district unknown for its spelling. */
 export function sameSite(probed: string, finalUrl: string): boolean {
   try {
-    return bare(new URL(finalUrl).hostname) === bare(probed);
+    return bare(new URL(`https://${probed}/`).hostname) === bare(new URL(finalUrl).hostname);
   } catch {
-    // an unparseable final URL is not evidence that it was the same place
+    // an unparseable URL on either side is not evidence that it was the same place
     return false;
   }
 }
@@ -30,17 +39,21 @@ export async function probe(
       headers: { "user-agent": "zae.life health check (+https://zae.life)" },
     });
 
-    const landed = res.url || `https://${host}/`;
+    const requested = `https://${host}/`;
+    const landed = res.url || requested;
     const offSite = !sameSite(host, landed);
 
     return {
       host,
       ok: !offSite && res.status >= 200 && res.status < 400,
       code: res.status,
-      redirectedTo: offSite ? landed : null,
+      // recorded whenever the probe moved, same host or not: the record has to
+      // include the cases the judgment cleared, or the judgment is unfalsifiable
+      finalUrl: landed === requested ? null : landed,
+      offSite,
     };
   } catch {
-    return { host, ok: false, code: null, redirectedTo: null };
+    return { host, ok: false, code: null, finalUrl: null, offSite: false };
   }
 }
 

@@ -31,6 +31,15 @@ export function shortMonth(iso: string): string {
   return `${month}'${(m[1] as string).slice(2)}`;
 }
 
+/** Where a district can actually be visited: its deployment if it has one, its
+ *  repository otherwise, and nothing when it has neither. Shared by the card and
+ *  by llms.txt so the two cannot point somewhere different for the same place. */
+export function districtLink(d: District): string | null {
+  if (d.host) return `https://${d.host}`;
+  if (d.repo) return `https://github.com/${d.repo}`;
+  return null;
+}
+
 export interface DistrictCells {
   mark: string;
   id: string;

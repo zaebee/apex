@@ -1,0 +1,52 @@
+---
+import { loadDistricts } from "../lib/districts";
+import Terminal from "../layouts/Terminal.astro";
+
+// The statement of the frame is the author's to write and is deliberately not
+// drafted here — see the spec's open questions.
+//
+// What sat here before was a hand-typed "22 project directories, over 1,600
+// commits since July 2025, most of them shipped in under a week" under the
+// label "Measured rather than claimed". None of it was measured by anything
+// that ships: the published record sums to a different number, "shipped in
+// under a week" is measured by nothing at all, and a constant standing in for
+// a measurement is precisely what hard constraint 1 forbids. The line is now
+// derived from the same record the map is drawn from, so it can be checked at
+// /districts.json and cannot rot.
+const { districts } = await loadDistricts();
+const withStats = districts.filter((d) => d.stats);
+const commits = withStats.reduce((n, d) => n + (d.stats?.commits ?? 0), 0);
+const days = withStats.reduce((n, d) => n + (d.stats?.activeDays ?? 0), 0);
+
+const measured =
+  withStats.length > 0
+    ? [
+        `  ${districts.length} districts on the map. ${commits} commits across ${days} active`,
+        `  days in the ${withStats.length} repositories whose history could be read.`,
+      ].join("\n")
+    : "  No repository statistics have been read yet.";
+---
+
+<Terminal
+  title="zaebee — zae.life"
+  description="Witness, apprentice. What I testify to, and what I do not."
+  current="me"
+>
+  <pre class="echo">zae.life ~ $ <b>me</b></pre>
+  <pre class="prose">  zaebee · witness, apprentice
+
+<span class="warn">  ‹ your words: what you testify to, and why you decline the role of
+    judge. Stated openly, by your decision. Not drafted by anyone but you. ›</span>
+
+<span class="dim">  Measured, and published at <a href="/districts.json">/districts.json</a>:</span>
+{measured}
+
+  github     <a href="https://github.com/zaebee">github.com/zaebee</a>
+  writing    <a href="https://habr.com/ru/users/ZaeBest">habr.com/ru/users/ZaeBest</a>
+<span class="warn">  email      ‹ your public contact here ›</span>
+
+<span class="dim">  curl https://zae.life   the same thing, plain text, no browser</span>
+<span class="dim">  /districts.json      the merged record this site is drawn from</span>
+<span class="dim">  /health.json         the raw snapshot, with its timestamps</span>
+</pre>
+</Terminal>

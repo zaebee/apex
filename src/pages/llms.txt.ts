@@ -1,0 +1,60 @@
+import type { APIRoute } from "astro";
+import { loadDistricts } from "../lib/districts";
+import { districtLink } from "../lib/format";
+import { type HealthSnapshot, replyFor } from "../lib/status";
+
+/** Mirrors what the page says. Claiming "none on record" while /health.json,
+ *  linked from this same file, plainly carries a lastOkAt would have the two
+ *  machine-readable surfaces disagreeing about whether an observation exists. */
+function describeHealth(health: HealthSnapshot | null): string {
+  if (health?.ok === true) return health.checkedAt ?? "none on record";
+  if (health?.lastOkAt) return `current check failed; last successful check ${health.lastOkAt}`;
+  return "none on record";
+}
+
+// A proposed convention with uneven adoption and no provider commitment. It
+// ships because it costs one endpoint over data already merged, not because it
+// is settled — and because a site holding that machines are readers worth
+// writing for should not be legible only to browsers.
+export const GET: APIRoute = async () => {
+  const { districts, health } = await loadDistricts();
+
+  const healthLine = describeHealth(health);
+
+  const lines = [
+    "# zae.life",
+    "",
+    "> zaebee — witness, apprentice. A city of projects, reported as it actually is:",
+    "> districts that answer are marked alive, districts that do not are marked cold,",
+    "> and state that was never observed is marked unknown rather than guessed.",
+    "",
+    `Health snapshot: ${healthLine}`,
+    "",
+    "## Districts",
+    "",
+    ...districts.map((d) => {
+      // a district with neither deployment nor repository has nowhere to point,
+      // and `[id](—)` is a broken link rather than an honest absence
+      const where = districtLink(d);
+      const name = where ? `[${d.id}](${where})` : d.id;
+      const built = d.stats
+        ? ` (${d.stats.commits} commits across ${d.stats.activeDays} active days)`
+        : "";
+      return `- ${name}: ${d.what ?? d.title} — ${replyFor(d.status, d.code)}${built}`;
+    }),
+    "",
+    "## Attestations",
+    "",
+    "None published yet.",
+    "",
+    "## Raw records",
+    "",
+    "- [districts.json](https://zae.life/districts.json): the merged record this site is drawn from",
+    "- [health.json](https://zae.life/health.json): the raw health snapshot with timestamps",
+    "",
+  ];
+
+  return new Response(lines.join("\n"), {
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+};

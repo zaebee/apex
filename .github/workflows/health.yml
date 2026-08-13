@@ -1,0 +1,44 @@
+name: health
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile --ignore-scripts
+
+      # The probe runs here rather than on the machine that hosts the districts,
+      # and rather than on Vercel: an observer that shares a failure mode with
+      # what it observes is not observing. It also probes a control host and
+      # records ok:false if even that fails, so a runner that lost egress
+      # reports "could not observe" instead of "everything is down".
+      - run: bun run health
+
+      # data/districts.toml is never staged. Machines own the numbers, the
+      # author owns the words. Pushing this commit is also what redeploys the
+      # site, since the snapshot is baked in at build time.
+      - run: |
+          git config user.name  "zae.life health"
+          git config user.email "health@zae.life"
+          git add data/health.json
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: health snapshot"
+          # rebase immediately before pushing: nothing serialises this job
+          # against the other data workflow or against a human merging a PR, and
+          # without it any commit landing on main in the meantime rejects the
+          # push — which for the weekly stats run means no update for a week
+          git pull --rebase origin main
+          git push

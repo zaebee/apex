@@ -8,8 +8,11 @@ dispatched.
 > the correction beside each, because deleting them would hide the thing worth
 > recording: the check was run, written up, contradicted by the next file in
 > this directory, and left standing. `13bdca0` is titled "correct the ground
-> truth" and corrected `ground-truth.md` while this file went on asserting what
-> `results-phase-2.md` disproves. All four predictions held. The raw answers are
+> truth" and wrote that correction into `results-phase-2.md` — deliberately, so
+> that what was pre-registered stays pre-registered — while leaving this file
+> asserting what the very file it added disproves. An earlier version of this
+> paragraph said the commit corrected `ground-truth.md`; it touched one file and
+> that was not it. All four predictions held. The raw answers are
 > now committed as `answers-phase-1.md`, so a reader can settle this without
 > taking the summariser's word for any of it.
 

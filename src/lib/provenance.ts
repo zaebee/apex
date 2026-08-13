@@ -81,7 +81,7 @@ const PAIRS: ReadonlyArray<readonly [string, string]> = [
  * dropping the genuine quotation beside it — an accusation and an erasure from
  * a single typo.
  */
-const SYMMETRIC = ['"', "'"];
+const SYMMETRIC = new Set(['"', "'"]);
 
 // Emphasis markers count as boundaries: witnesses write citations as
 // `**Цитата:** *"…"*`, and a rule that only admitted whitespace rejected every
@@ -90,16 +90,27 @@ const SYMMETRIC = ['"', "'"];
 const BEFORE_OPENER = /[\s([{:;,—–*_-]/;
 const AFTER_CLOSER = /[\s.,;:!?)\]}—–*_…-]/;
 
+/**
+ * An apostrophe needs a stricter left boundary than a quotation mark, because
+ * it doubles as a possessive marker. Admitting emphasis for both — added so
+ * that `**Цитата:** *"…"*` would open — made `*witness*'s answer said 'x'`
+ * open at the possessive, swallowing the real quotation and manufacturing one
+ * out of the prose before it. The exact fault the emphasis rule was added to
+ * repair, reintroduced by the repair, on a form witnesses write constantly.
+ */
+const BEFORE_APOSTROPHE = /[\s([{—–-]/;
+
 interface Span {
   raw: string;
   start: number;
   end: number;
 }
 
-function opensHere(text: string, i: number): boolean {
+function opensHere(text: string, i: number, mark: string): boolean {
   if (i === 0) return true;
   const previous = text[i - 1];
-  return previous === undefined || BEFORE_OPENER.test(previous);
+  if (previous === undefined) return true;
+  return (mark === "'" ? BEFORE_APOSTROPHE : BEFORE_OPENER).test(previous);
 }
 
 function closesHere(text: string, i: number): boolean {
@@ -107,41 +118,53 @@ function closesHere(text: string, i: number): boolean {
   return next === undefined || AFTER_CLOSER.test(next);
 }
 
+/** Index of the closing mark for a pair whose two marks differ, or null. */
+function pairedCloser(text: string, from: number, open: string, close: string): number | null {
+  let depth = 1;
+
+  for (let j = from + 1; j < text.length; j++) {
+    const c = text[j];
+    if (c === open && open !== close) {
+      depth++;
+    } else if (c === close) {
+      depth--;
+      if (depth === 0) return closesHere(text, j) ? j : null;
+    }
+  }
+
+  return null;
+}
+
+/** Index of the closing mark for a mark that opens and closes alike, or null. */
+function symmetricCloser(text: string, from: number, mark: string): number | null {
+  for (let j = from + 1; j < text.length; j++) {
+    if (text[j] === mark && closesHere(text, j)) return j;
+  }
+
+  return null;
+}
+
+function closerFor(text: string, i: number, mark: string): number | null {
+  const pair = PAIRS.find(([open]) => open === mark);
+  if (pair) return pairedCloser(text, i, pair[0], pair[1]);
+  return SYMMETRIC.has(mark) ? symmetricCloser(text, i, mark) : null;
+}
+
 function inlineQuotations(text: string): Span[] {
   const out: Span[] = [];
+  let i = 0;
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (!ch || !opensHere(text, i)) continue;
+  while (i < text.length) {
+    const mark = text[i];
+    const end = mark && opensHere(text, i, mark) ? closerFor(text, i, mark) : null;
 
-    const pair = PAIRS.find(([open]) => open === ch);
-    if (pair) {
-      const [open, close] = pair;
-      let depth = 1;
-      for (let j = i + 1; j < text.length; j++) {
-        const c = text[j];
-        if (c === open && open !== close) {
-          depth++;
-        } else if (c === close) {
-          depth--;
-          if (depth > 0) continue;
-          if (closesHere(text, j)) {
-            out.push({ raw: text.slice(i + 1, j), start: i, end: j });
-            i = j;
-          }
-          break;
-        }
-      }
+    if (end === null) {
+      i++;
       continue;
     }
 
-    if (!SYMMETRIC.includes(ch)) continue;
-    for (let j = i + 1; j < text.length; j++) {
-      if (text[j] !== ch || !closesHere(text, j)) continue;
-      out.push({ raw: text.slice(i + 1, j), start: i, end: j });
-      i = j;
-      break;
-    }
+    out.push({ raw: text.slice(i + 1, end), start: i, end });
+    i = end + 1;
   }
 
   return out;
@@ -156,16 +179,18 @@ function blockquotes(text: string, consumed: Span[]): string[] {
   const out: string[] = [];
   let offset = 0;
 
-  for (const line of text.split("\n")) {
-    // `\r?` so a CRLF file does not silently lose every blockquote citation:
-    // `.` never matches `\r`, and without the flag `$` demands end of string.
-    const body = /^\s*>\s?(.+?)\r?$/.exec(line)?.[1];
+  for (const raw of text.split("\n")) {
+    // The carriage return is trimmed rather than matched: `.` never matches it
+    // and `$` without the m flag demands end of string, so a CRLF file used to
+    // lose every blockquote citation. Offsets stay on the untrimmed line.
+    const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+    const body = /^\s*>\s?(.+)$/.exec(line)?.[1];
     if (body) {
       const start = offset + line.indexOf(body);
       const end = start + body.length;
       if (!consumed.some((s) => s.start < end && s.end >= start)) out.push(body);
     }
-    offset += line.length + 1;
+    offset += raw.length + 1;
   }
 
   return out;
@@ -212,20 +237,37 @@ export function extractQuotations(text: string): Quotation[] {
     .map((raw) => ({ raw, fragments: splice(raw) }));
 }
 
+/**
+ * A number that numbers a heading or a list item is not a figure anyone needs
+ * to settle. On the answer this tool was written for, every single figure it
+ * reported was one of those: six section numbers and the two ends of a range.
+ */
+function isOrdinal(text: string, index: number, match: string): boolean {
+  if (!match.endsWith(".") || !/^\d+\.$/.test(match)) return false;
+  const lineStart = text.lastIndexOf("\n", index - 1) + 1;
+  return /^[\s#*>-]*$/.test(text.slice(lineStart, index));
+}
+
 export function extractFigures(text: string): Figure[] {
   const out: Figure[] = [];
-  // Not preceded or followed by a word character or hyphen, so `Ed25519` does
-  // not become the figure 25519 and a date does not become three figures.
-  const re = /(?<![\w.,-])\d[\d.,]*\s*%?(?![\w-])/g;
+  // Not touching a word character, a hyphen or a dash, so `Ed25519` does not
+  // become 25519, a date does not become three figures, and `уровни 1–3` does
+  // not become the ends of its own range.
+  const re = /(?<![\w.,—–-])\d[\d.,]*\s*%?(?![\w—–-])/g;
 
   for (const m of text.matchAll(re)) {
-    const value = m[0].trim().replace(/[.,]$/, "");
+    const raw = m[0].trim();
+    if (isOrdinal(text, m.index, raw)) continue;
+
     const from = Math.max(0, m.index - 40);
     const to = Math.min(text.length, m.index + m[0].length + 40);
     // Repeats are kept rather than deduplicated: the same number twice is two
     // claims in two contexts, and dropping the second discards the context a
     // reader would need to settle it.
-    out.push({ value, context: text.slice(from, to).replace(/\s+/g, " ").trim() });
+    out.push({
+      value: raw.replace(/[.,]$/, ""),
+      context: text.slice(from, to).replace(/\s+/g, " ").trim(),
+    });
   }
 
   return out;
@@ -278,34 +320,29 @@ function oneLine(s: string, max = 72): string {
   return flat.length <= max ? flat : `${flat.slice(0, max - 1)}…`;
 }
 
-export function render(report: Report): string {
-  const lines: string[] = [];
-  const names = report.searched.join(", ") || "nothing";
+function verdictLine(f: Fragment, names: string): string {
+  if (f.verdict === "verbatim") return `appears in: ${f.source}`;
+  if (f.verdict === "too-short") return `too short to check (under ${MIN_FRAGMENT} characters)`;
+  return `not found in: ${names}`;
+}
 
-  lines.push(`searched: ${names}`);
-  lines.push("");
+export function render(report: Report): string {
+  const names = report.searched.join(", ") || "nothing";
+  const lines: string[] = [`searched: ${names}`, ""];
 
   for (const q of report.quotations) {
     for (const f of q.fragments) {
-      const mark =
-        f.verdict === "verbatim"
-          ? `appears in: ${f.source}`
-          : f.verdict === "too-short"
-            ? `too short to check (under ${MIN_FRAGMENT} characters)`
-            : `not found in: ${names}`;
-      lines.push(`  ${oneLine(f.text)}`);
-      lines.push(`    ${mark}`);
+      lines.push(`  ${oneLine(f.text)}`, `    ${verdictLine(f, names)}`);
     }
   }
 
   if (report.figures.length > 0) {
-    lines.push("");
-    lines.push("figures, for a reader to settle by hand:");
+    lines.push("", "figures, for a reader to settle by hand:");
     for (const fig of report.figures) lines.push(`  ${fig.value} — ${oneLine(fig.context)}`);
   }
 
-  lines.push("");
   lines.push(
+    "",
     "A fragment not found here is absent from the files searched. That is not a",
     "judgement about the statement, and a fragment that does appear is evidence",
     "only that it was quoted, not that the claim resting on it holds.",

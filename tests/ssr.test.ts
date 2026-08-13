@@ -136,10 +136,18 @@ test("a card names its unwritten prose rather than filling it", () => {
   expect(card).toContain("not written yet");
 });
 
-test("a card reports the commits it has and omits the line it does not", () => {
-  // aura's statistics were read; house has no host and no stats entry
-  expect(renderedCard(withoutScripts, "aura")).toContain("commits across");
-  expect(renderedCard(withoutScripts, "house")).not.toContain("commits across");
+// Named districts made this brittle: it asserted house had no statistics, which
+// was true only while its private repository was unreadable. The moment a token
+// existed the world changed and the test called it a regression. The invariant
+// is the correspondence, not which district happens to be on which side of it.
+test("a card shows the built line exactly when that district has statistics", async () => {
+  const { districts } = await loadDistricts();
+  expect(districts.length).toBeGreaterThan(0);
+
+  for (const d of districts) {
+    const card = renderedCard(withoutScripts, d.id);
+    expect(card.includes("commits across")).toBe(Boolean(d.stats));
+  }
 });
 
 test("the page paints its own ground rather than borrowing one", () => {

@@ -77,7 +77,7 @@ if (import.meta.main) {
 
   for (const repo of repos) {
     try {
-      const stats = await statsForRemote(repo, token);
+      const stats = { ...(await statsForRemote(repo, token)), readAt: new Date().toISOString() };
       out[repo] = stats;
       read++;
       console.log(`ok     ${repo}  ${stats.commits}c / ${stats.activeDays}d`);

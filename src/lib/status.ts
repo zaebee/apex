@@ -7,6 +7,15 @@ export interface HealthEntry {
   host: string;
   ok: boolean;
   code: number | null;
+  /** Where the probe landed, recorded whenever it differs from what was
+   *  requested — including same-host redirects. This is the record: a reader
+   *  checks the judgment below against it, which they cannot do if only the
+   *  cases the code already decided are kept. */
+  finalUrl?: string | null;
+  /** The judgment: the landing was a different host, so whatever answered, it
+   *  was not this district. Kept separate from finalUrl on purpose — one is
+   *  what was seen, the other is what was concluded from it. */
+  offSite?: boolean;
 }
 
 export interface HealthSnapshot {
@@ -74,6 +83,15 @@ export function resolveStatus(d: StatusInput, snapshot: HealthSnapshot | null): 
   if (snapshot?.ok !== true) return "unknown";
 
   const entry = snapshot.entries[d.host];
+
+  // A hostname that now sends the probe to a different host was not observed —
+  // something else was, at that address. A lapsed domain landing on a
+  // registrar's parking page answers 200, and calling that alive would report
+  // the day a district died as the day it turned green. Neither alive nor cold
+  // is true: the check reached a server and learned nothing about this district.
+  // Compared by value, like every other gate here.
+  if (entry?.offSite === true) return "unknown";
+
   if (entry?.ok === true) return "alive";
   if (entry?.ok === false) return "cold";
   return "unknown";

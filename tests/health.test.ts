@@ -105,3 +105,92 @@ test("the shipped allowlist yields the hosts the map will probe", async () => {
   expect(hosts).toContain("aura.zae.life");
   expect(hosts).not.toContain(undefined);
 });
+
+// --- #10: a hostname that now points elsewhere was not observed ---
+
+/** A lapsed domain landing on a registrar's parking page: 200, and nothing to
+ *  do with the district that used to be there. */
+const parkedFetch = (async () => {
+  const res = new Response("<html>buy this domain</html>", { status: 200 });
+  Object.defineProperty(res, "url", { value: "https://parking.example.com/lander" });
+  return res;
+}) as unknown as typeof fetch;
+
+const localeRedirectFetch = (async (url: string | URL) => {
+  const res = new Response("", { status: 200 });
+  Object.defineProperty(res, "url", { value: `${String(url).replace(/\/$/, "")}/en` });
+  return res;
+}) as unknown as typeof fetch;
+
+const wwwFetch = (async (url: string | URL) => {
+  const res = new Response("", { status: 200 });
+  Object.defineProperty(res, "url", { value: String(url).replace("https://", "https://www.") });
+  return res;
+}) as unknown as typeof fetch;
+
+test("a parked domain answering 200 is not reported alive", async () => {
+  const e = await probe("lapsed.zae.life", parkedFetch);
+  expect(e.ok).toBe(false);
+  expect(e.offSite).toBe(true);
+  expect(e.finalUrl).toBe("https://parking.example.com/lander");
+});
+
+test("and it resolves to unknown, not cold — nothing observed this district", async () => {
+  const snap = await buildSnapshot(["lapsed.zae.life"], new Date(), parkedFetch);
+  expect(resolveStatus({ host: "lapsed.zae.life" }, snap)).toBe("unknown");
+});
+
+test("a redirect within the same host is still the district answering", async () => {
+  const e = await probe("estate.zae.life", localeRedirectFetch);
+  expect(e.ok).toBe(true);
+  expect(e.offSite).toBe(false);
+  // recorded even though the judgment cleared it — a judgment whose evidence is
+  // discarded when it says yes cannot be checked by anyone but the code
+  expect(e.finalUrl).toBe("https://estate.zae.life/en");
+});
+
+test("www and the bare host are the same site by convention", async () => {
+  const e = await probe("estate.zae.life", wwwFetch);
+  expect(e.ok).toBe(true);
+  expect(e.offSite).toBe(false);
+});
+
+test("and in the other direction too", async () => {
+  const bareFetch = (async (url: string | URL) => {
+    const res = new Response("", { status: 200 });
+    Object.defineProperty(res, "url", { value: String(url).replace("https://www.", "https://") });
+    return res;
+  }) as unknown as typeof fetch;
+  const e = await probe("www.estate.zae.life", bareFetch);
+  expect(e.ok).toBe(true);
+  expect(e.offSite).toBe(false);
+});
+
+// res.url comes back serialized, so a Cyrillic host arrives as punycode.
+// Comparing it against the raw allowlist string reported a live district as
+// having redirected to its own hostname.
+test("a host spelled in Cyrillic is not a different host from its punycode", async () => {
+  const puny = (async () => {
+    const res = new Response("", { status: 200 });
+    Object.defineProperty(res, "url", { value: "https://xn--80afqtn.zae.life/" });
+    return res;
+  }) as unknown as typeof fetch;
+  const e = await probe("грани.zae.life", puny);
+  expect(e.offSite).toBe(false);
+  expect(e.ok).toBe(true);
+});
+
+test("a trailing root dot names the same host", async () => {
+  const dotted = (async () => {
+    const res = new Response("", { status: 200 });
+    Object.defineProperty(res, "url", { value: "https://estate.zae.life./" });
+    return res;
+  }) as unknown as typeof fetch;
+  expect((await probe("estate.zae.life", dotted)).offSite).toBe(false);
+});
+
+test("where the probe landed is published either way", async () => {
+  const snap = await buildSnapshot(["lapsed.zae.life"], new Date(), parkedFetch);
+  // the record shows what was reached, so the judgment is checkable by a reader
+  expect(snap.entries["lapsed.zae.life"]?.finalUrl).toContain("parking.example.com");
+});

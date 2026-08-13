@@ -1,6 +1,7 @@
 ---
 import type { District } from "../lib/districts";
 import { continuationIndent, districtCells, districtLink } from "../lib/format";
+import { freshness } from "../lib/freshness";
 import { TONE } from "../lib/status";
 
 interface Props {
@@ -30,6 +31,15 @@ if (d.stats) {
     label: label("built"),
     value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
     cls: "",
+  });
+  // Never "stale". Git history does not erode the way a health probe does — a
+  // count read last week is still a true account of commits that happened — so
+  // the card says when it was read and stops there.
+  const read = freshness(d.stats.readAt ?? null, new Date());
+  lines.push({
+    label: label("read"),
+    value: read.label === "never" ? "not recorded" : read.label,
+    cls: read.label === "never" ? "warn" : "dim",
   });
 }
 for (const [k, v] of [

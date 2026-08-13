@@ -1,5 +1,28 @@
 import type { HealthEntry, HealthSnapshot } from "./status";
 
+/** `www.` is the one prefix that conventionally names the same site, so a
+ *  redirect across it is not a redirect away from the district. A trailing root
+ *  dot names the same host too. Everything else is a different host, whatever
+ *  it happens to serve. */
+const bare = (h: string) =>
+  h
+    .replace(/\.$/, "")
+    .replace(/^www\./i, "")
+    .toLowerCase();
+
+/** Both sides go through the URL parser. `res.url` is always serialized, so a
+ *  Cyrillic host arrives back as punycode — comparing it against the raw string
+ *  from districts.toml reported a district as having redirected to its own
+ *  hostname, and marked a live district unknown for its spelling. */
+export function sameSite(probed: string, finalUrl: string): boolean {
+  try {
+    return bare(new URL(`https://${probed}/`).hostname) === bare(new URL(finalUrl).hostname);
+  } catch {
+    // an unparseable URL on either side is not evidence that it was the same place
+    return false;
+  }
+}
+
 export async function probe(
   host: string,
   fetchImpl: typeof fetch = fetch,
@@ -8,13 +31,29 @@ export async function probe(
   try {
     const res = await fetchImpl(`https://${host}/`, {
       method: "GET",
+      // Followed on purpose: a live district may legitimately redirect — to
+      // https, to a locale, to a trailing slash. Where it landed is what
+      // decides whether the district was observed, so it is recorded.
       redirect: "follow",
       signal: AbortSignal.timeout(timeoutMs),
       headers: { "user-agent": "zae.life health check (+https://zae.life)" },
     });
-    return { host, ok: res.status >= 200 && res.status < 400, code: res.status };
+
+    const requested = `https://${host}/`;
+    const landed = res.url || requested;
+    const offSite = !sameSite(host, landed);
+
+    return {
+      host,
+      ok: !offSite && res.status >= 200 && res.status < 400,
+      code: res.status,
+      // recorded whenever the probe moved, same host or not: the record has to
+      // include the cases the judgment cleared, or the judgment is unfalsifiable
+      finalUrl: landed === requested ? null : landed,
+      offSite,
+    };
   } catch {
-    return { host, ok: false, code: null };
+    return { host, ok: false, code: null, finalUrl: null, offSite: false };
   }
 }
 

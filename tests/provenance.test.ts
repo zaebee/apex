@@ -61,15 +61,39 @@ test("an ellipsis splits one quotation into separately checked fragments", () =>
   expect(q?.fragments).toEqual(["An agent is built from four components", "A harness"]);
 });
 
-// The quotation marks below are genuinely curly. An earlier version of this test
-// named curly quotes and contained none, so deleting the normalisation that
-// handles them left all seven tests passing.
-test("case, whitespace and curly quotes do not decide a match", () => {
+test("case and whitespace do not decide a match", () => {
   const f = firstFragment(
     checkAnswer("«an   AGENT is built\nfrom four components»", { article: ARTICLE }),
   );
   expect(f.verdict).toBe("verbatim");
   expect(f.source).toBe("article");
+});
+
+// The surrounding marks are stripped by extraction, so a test that merely wraps
+// its input in guillemets exercises none of the normalisation — an earlier pair
+// of versions both missed this, and deleting the curly-quote rules left every
+// test passing. What matters is curly marks *inside* the compared text, which is
+// the ordinary case: sources use typographic apostrophes and witnesses retype
+// them straight.
+test("typographic marks inside the text do not decide a match", () => {
+  const apostrophe = checkAnswer(`"Claude's own rate of checking in"`, {
+    article: "On complex tasks, Claude’s own rate of checking in roughly doubles.",
+  });
+  expect(firstFragment(apostrophe).verdict).toBe("verbatim");
+
+  const inner = checkAnswer(`«the "model" component matters»`, {
+    article: "We think the “model” component matters most.",
+  });
+  expect(firstFragment(inner).verdict).toBe("verbatim");
+});
+
+// The opener rule alone leaves the closer unguarded: without it the first
+// apostrophe inside a word ends the quotation, truncating what the witness
+// actually quoted.
+test("an apostrophe inside a word does not close a quotation", () => {
+  expect(extractQuotations("He wrote 'don't stop believing' and left.").map((q) => q.raw)).toEqual([
+    "don't stop believing",
+  ]);
 });
 
 test("a fragment absent from every source is reported as not found, not as false", () => {

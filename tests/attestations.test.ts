@@ -48,7 +48,7 @@ test("rss and its link appear together with the entries, or not at all", async (
     expect(map).toContain('rel="alternate"');
     expect(log).toContain("/rss.xml");
     const feed = await Bun.file(`${dist}/rss.xml`).text();
-    expect((feed.match(/<item>/g) ?? []).length).toBe(n);
+    expect(feed.match(/<item>/g) ?? []).toHaveLength(n);
   }
 });
 

@@ -62,16 +62,35 @@ if (import.meta.main) {
     ),
   ];
 
+  // What the last successful run observed. Git history does not go stale the
+  // way a health probe does: a commit count read last week is still a true
+  // account of commits that happened, and the map prints the last-commit month
+  // beside it. So a repo that fails to clone this time keeps its previous entry
+  // rather than vanishing — dropping it would erase an observation that was
+  // made, on the strength of a run that observed nothing about that repo.
+  const previous: Record<string, RepoStats> = await Bun.file("data/stats.json")
+    .json()
+    .catch(() => ({}));
+
   const out: Record<string, RepoStats> = {};
+  let read = 0;
+
   for (const repo of repos) {
     try {
       const stats = await statsForRemote(repo, token);
       out[repo] = stats;
-      console.log(`ok    ${repo}  ${stats.commits}c / ${stats.activeDays}d`);
+      read++;
+      console.log(`ok     ${repo}  ${stats.commits}c / ${stats.activeDays}d`);
     } catch (e) {
-      // A repo that cannot be read is omitted, never zero-filled: zeroes would
-      // testify to an empty history nobody observed.
-      console.error(`skip  ${repo}  ${(e as Error).message}`);
+      const kept = previous[repo];
+      if (kept) {
+        out[repo] = kept;
+        console.error(`kept   ${repo}  unreadable this run: ${(e as Error).message}`);
+      } else {
+        // Never zero-filled: zeroes would testify to an empty history nobody
+        // observed. With nothing previously observed either, it is omitted.
+        console.error(`skip   ${repo}  ${(e as Error).message}`);
+      }
     }
   }
 
@@ -79,11 +98,13 @@ if (import.meta.main) {
   // empty result is not. A revoked token fails every clone, and writing {} would
   // erase every previously observed statistic on the strength of a run that
   // observed nothing. Keep the old testimony and fail loudly instead.
-  if (repos.length > 0 && Object.keys(out).length === 0) {
+  if (repos.length > 0 && read === 0) {
     console.error(`refusing to write data/stats.json: 0/${repos.length} repos could be read`);
     process.exit(1);
   }
 
   await Bun.write("data/stats.json", `${JSON.stringify(out, null, 2)}\n`);
-  console.log(`wrote data/stats.json — ${Object.keys(out).length}/${repos.length} repos`);
+  console.log(
+    `wrote data/stats.json — ${read}/${repos.length} read, ${Object.keys(out).length} recorded`,
+  );
 }

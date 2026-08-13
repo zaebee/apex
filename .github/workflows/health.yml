@@ -34,5 +34,11 @@ jobs:
           git config user.name  "zae.life health"
           git config user.email "health@zae.life"
           git add data/health.json
-          git diff --staged --quiet || git commit -m "chore: health snapshot"
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: health snapshot"
+          # rebase immediately before pushing: nothing serialises this job
+          # against the other data workflow or against a human merging a PR, and
+          # without it any commit landing on main in the meantime rejects the
+          # push — which for the weekly stats run means no update for a week
+          git pull --rebase origin main
           git push

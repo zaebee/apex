@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
+import { TERMINAL_UA } from "../middleware";
+import type { District } from "../src/lib/districts";
 import { loadDistricts } from "../src/lib/districts";
+import { MARK, replyFor } from "../src/lib/status";
 
 const dist = "dist/client";
 const read = async (p: string) => await Bun.file(`${dist}/${p}`).text();
@@ -19,11 +22,40 @@ test("health.json carries the timestamps its age is judged by", async () => {
 });
 
 // The published record and the rendered page must agree, or publishing the
-// record proves nothing.
-test("the rendered map agrees with the published record", async () => {
-  const { districts } = await Bun.file(`${dist}/districts.json`).json();
+// record proves nothing. Checking only that each id appears is not that check:
+// a map that painted every district green — including two that were never web
+// services — passed it, verified by rendering exactly that.
+test("every rendered row reports the status the published record holds", async () => {
+  const { districts } = (await Bun.file(`${dist}/districts.json`).json()) as {
+    districts: District[];
+  };
   const html = await read("index.html");
-  for (const d of districts) expect(html).toContain(d.id);
+  expect(districts.length).toBeGreaterThan(0);
+
+  for (const d of districts) {
+    const row = new RegExp(`<summary[^>]*data-id="${d.id}"[^>]*>([\\s\\S]*?)</summary>`).exec(
+      html,
+    )?.[1];
+    expect(row).toBeDefined();
+
+    const text = (row ?? "").replace(/<[^>]*>/g, "");
+    expect(text.startsWith(MARK[d.status])).toBe(true);
+    expect(text).toContain(replyFor(d.status, d.code));
+  }
+});
+
+test("the plain-text branch reports the same statuses as the record", async () => {
+  const { districts } = (await Bun.file(`${dist}/districts.json`).json()) as {
+    districts: District[];
+  };
+  const lines = (await read("plain.txt")).split("\n");
+
+  for (const d of districts) {
+    const line = lines.find((l) => l.includes(` ${d.id} `) || l.trimEnd().endsWith(` ${d.id}`));
+    expect(line).toBeDefined();
+    expect(line).toContain(MARK[d.status]);
+    expect(line).toContain(replyFor(d.status, d.code));
+  }
 });
 
 test("the plain-text branch and the html map report identical counts", async () => {
@@ -79,10 +111,12 @@ test("no feed is advertised while there is nothing to feed", async () => {
   expect(html).not.toContain('rel="alternate"');
 });
 
+// The regex is imported, not copied: a copy would keep passing after the real
+// one changed, which is the same failure as a test asserting on source text.
 test("the middleware matches terminal agents and not browsers", () => {
-  const re = /\b(curl|wget|httpie|xh)\b/i;
-  expect(re.test("curl/8.4.0")).toBe(true);
-  expect(re.test("Wget/1.21")).toBe(true);
-  expect(re.test("Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/120")).toBe(false);
-  expect(re.test("Googlebot/2.1")).toBe(false);
+  expect(TERMINAL_UA.test("curl/8.4.0")).toBe(true);
+  expect(TERMINAL_UA.test("Wget/1.21")).toBe(true);
+  expect(TERMINAL_UA.test("HTTPie/3.2.2")).toBe(true);
+  expect(TERMINAL_UA.test("Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/120")).toBe(false);
+  expect(TERMINAL_UA.test("Googlebot/2.1")).toBe(false);
 });

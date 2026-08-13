@@ -37,5 +37,11 @@ jobs:
           git config user.name  "zae.life stats"
           git config user.email "stats@zae.life"
           git add data/stats.json
-          git diff --staged --quiet || git commit -m "chore: repository statistics"
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: repository statistics"
+          # rebase immediately before pushing: nothing serialises this job
+          # against the other data workflow or against a human merging a PR, and
+          # without it any commit landing on main in the meantime rejects the
+          # push — which for the weekly stats run means no update for a week
+          git pull --rebase origin main
           git push

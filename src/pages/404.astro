@@ -1,0 +1,24 @@
+---
+import Terminal from "../layouts/Terminal.astro";
+
+// Without this, a wrong URL drops the visitor out of the terminal onto the
+// platform's default 404 — including `log 1`, which the dispatcher will happily
+// navigate to while the journal itself reports zero attestations. Staying in
+// the frame also keeps the map one command away.
+---
+
+<Terminal
+  title="Not found — zae.life"
+  description="No such page."
+  current="map"
+>
+  <pre class="echo">zae.life ~ $ <b>cat &lt;that path&gt;</b></pre>
+  <pre class="prose"><span class="warn">  No such page.</span>
+
+<span class="dim">  Not pretending it moved, and not guessing what you meant.</span>
+
+<span class="dim">  0:map    the city, as it actually is</span>
+<span class="dim">  1:log    attestations — none published yet</span>
+<span class="dim">  2:me     who, and how to reach me</span>
+</pre>
+</Terminal>

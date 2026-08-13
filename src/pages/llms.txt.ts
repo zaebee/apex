@@ -10,6 +10,13 @@ import { replyFor } from "../lib/status";
 export const GET: APIRoute = async () => {
   const { districts, health } = await loadDistricts();
 
+  const healthLine =
+    health?.ok === true
+      ? (health.checkedAt ?? "none on record")
+      : health?.lastOkAt
+        ? `current check failed; last successful check ${health.lastOkAt}`
+        : "none on record";
+
   const lines = [
     "# zae.life",
     "",
@@ -17,16 +24,22 @@ export const GET: APIRoute = async () => {
     "> districts that answer are marked alive, districts that do not are marked cold,",
     "> and state that was never observed is marked unknown rather than guessed.",
     "",
-    `Health snapshot: ${health?.ok === true ? health.checkedAt : "none on record"}`,
+    // mirrors what the page says. Claiming "none on record" while /health.json,
+    // linked below, plainly carries a lastOkAt would have the two machine-readable
+    // surfaces disagreeing about whether an observation exists.
+    `Health snapshot: ${healthLine}`,
     "",
     "## Districts",
     "",
     ...districts.map((d) => {
-      const where = districtLink(d) ?? "—";
+      // a district with neither deployment nor repository has nowhere to point,
+      // and `[id](—)` is a broken link rather than an honest absence
+      const where = districtLink(d);
+      const name = where ? `[${d.id}](${where})` : d.id;
       const built = d.stats
         ? ` (${d.stats.commits} commits across ${d.stats.activeDays} active days)`
         : "";
-      return `- [${d.id}](${where}): ${d.what ?? d.title} — ${replyFor(d.status, d.code)}${built}`;
+      return `- ${name}: ${d.what ?? d.title} — ${replyFor(d.status, d.code)}${built}`;
     }),
     "",
     "## Attestations",

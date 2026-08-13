@@ -35,6 +35,7 @@ export const GET: APIRoute = async () => {
     // the same rule the page follows: this line asserts a count, so it may only
     // appear when the check that produced the count actually succeeded
     ...coldLines,
+    "  curl https://zae.life               this, plain text",
     "  https://zae.life/districts.json    the merged record",
     "  https://zae.life/health.json       the raw snapshot",
     "",

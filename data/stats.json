@@ -34,5 +34,41 @@
     "activeDays": 30,
     "first": "2026-07-03",
     "last": "2026-08-04"
+  },
+  "zaebee/chat": {
+    "commits": 252,
+    "activeDays": 10,
+    "first": "2025-09-16",
+    "last": "2025-09-26"
+  },
+  "zaebee/agents-list": {
+    "commits": 183,
+    "activeDays": 17,
+    "first": "2025-07-24",
+    "last": "2025-08-17"
+  },
+  "zaebee/medicine": {
+    "commits": 174,
+    "activeDays": 8,
+    "first": "2025-09-17",
+    "last": "2025-10-20"
+  },
+  "zaebee/tech-quiz": {
+    "commits": 140,
+    "activeDays": 6,
+    "first": "2025-09-11",
+    "last": "2025-09-16"
+  },
+  "zaebee/crash-hunter": {
+    "commits": 58,
+    "activeDays": 2,
+    "first": "2025-11-21",
+    "last": "2025-11-22"
+  },
+  "zaebee/agents": {
+    "commits": 51,
+    "activeDays": 6,
+    "first": "2025-07-08",
+    "last": "2026-08-10"
   }
 }

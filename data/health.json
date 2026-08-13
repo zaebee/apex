@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-08-13T00:23:46.012Z",
+  "ok": true,
+  "entries": {
+    "aura.zae.life": {
+      "host": "aura.zae.life",
+      "ok": false,
+      "code": 502
+    },
+    "car.zae.life": {
+      "host": "car.zae.life",
+      "ok": false,
+      "code": null
+    },
+    "comics.zae.life": {
+      "host": "comics.zae.life",
+      "ok": false,
+      "code": null
+    }
+  }
+}

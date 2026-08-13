@@ -8,6 +8,13 @@ interface Props {
   current: "map" | "log" | "me";
 }
 const { title, description, current } = Astro.props;
+
+// Canonical and Open Graph were missing entirely. Being found is the site's
+// first stated goal, and a link shared into a chat or a feed currently renders
+// as a bare URL with no title — the one place a stranger decides whether to
+// click. No image: this page has nothing photographic to show, and inventing a
+// card graphic would be decoration standing in for the thing itself.
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://zae.life").href;
 ---
 
 <!doctype html>
@@ -20,6 +27,13 @@ const { title, description, current } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0b0d0c" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="zae.life" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta name="twitter:card" content="summary" />
     <!-- The RSS <link> returns with Task 10. Advertising a feed with nothing in
          it is a small false promise, and this site does not get to make those. -->
   </head>

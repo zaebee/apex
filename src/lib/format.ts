@@ -133,7 +133,7 @@ export function districtCells(d: District, opts: { narrow?: boolean } = {}): Dis
     mark: `${MARK[d.status]}  `,
     id: pad(d.id, 13),
     host: opts.narrow ? "" : pad(d.host ?? "—", 22),
-    reply: pad(replyFor(d.status, d.code), 11),
+    reply: pad(replyFor(d.status, d.code), 12),
     stats: pad(d.stats ? `${d.stats.commits}c / ${d.stats.activeDays}d` : "—", 11),
     last: shortMonth(d.stats?.last ?? ""),
   };

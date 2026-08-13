@@ -279,4 +279,38 @@ function openFromHash() {
 window.addEventListener("hashchange", openFromHash);
 openFromHash();
 
+/** Typing should just work: the one instruction on screen says "click anything,
+ *  or type", and without this only the first half was true.
+ *
+ *  The keystroke is applied here rather than left to the browser to redirect
+ *  into the newly focused field. Focusing during keydown does carry printable
+ *  characters across in current browsers, but it carries neither Backspace —
+ *  whose default already ran against the old target — nor Enter, whose event
+ *  was dispatched to the body and so never reaches the input's own listener.
+ *  Both were verified swallowed. Doing the work explicitly makes all three
+ *  behave the same and does not rest on behaviour I could not test. */
+window.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const active = document.activeElement;
+  if (active === sink) return;
+  // a real control has focus and should keep it
+  if (active instanceof HTMLElement && active.closest("a, button, summary, input")) return;
+
+  const type = (next: string) => {
+    e.preventDefault();
+    sink.focus();
+    sink.value = next;
+    sink.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  if (e.key.length === 1) return type(sink.value + e.key);
+  if (e.key === "Backspace") return type(sink.value.slice(0, -1));
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sink.focus();
+    sink.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  }
+});
+
 sink.focus();

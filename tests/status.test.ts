@@ -115,11 +115,23 @@ test("every status has a mark and a reply", () => {
 // A constant per status would testify past observation: a host that answered
 // 502 did not time out, and printing "timeout" over it names a failure mode
 // nobody saw.
-test("the reply reports the code that was actually observed", () => {
-  expect(replyFor("cold", 502)).toBe("502");
-  expect(replyFor("cold", 404)).toBe("404");
+test("the reply reports what was actually observed, in words a visitor reads", () => {
+  // the standard reason phrase is not an interpretation laid over the code —
+  // 502 *is* bad gateway by definition. The raw number stays in the card and
+  // in /health.json, so the row can be legible without being looser.
+  expect(replyFor("cold", 502)).toBe("bad gateway");
+  expect(replyFor("cold", 404)).toBe("not found");
+  expect(replyFor("cold", 599)).toBe("599");
   expect(replyFor("alive", 200)).toBe("200 OK");
   expect(replyFor("alive", 204)).toBe("204 OK");
+});
+
+test("a code still never names a failure mode that was not observed", () => {
+  // the original defect: every cold district printed "timeout", including one
+  // answering 502. Only an actual 408/504 may say timeout.
+  expect(replyFor("cold", 502)).not.toContain("timeout");
+  expect(replyFor("cold", 503)).not.toContain("timeout");
+  expect(replyFor("cold", 408)).toBe("timeout");
 });
 
 test("no code means no claim about how it failed", () => {

@@ -136,7 +136,17 @@ function dispatch(action: Action, echo: string) {
       location.href = "/log";
       return;
     case "logEntry":
-      location.href = `/log/${action.n}`;
+      // the listing numbers entries; the anchor there carries the real slug
+      {
+        const link = document.querySelector<HTMLAnchorElement>(
+          `a[data-act="log"][data-id="${action.n}"]`,
+        );
+        if (link) {
+          location.href = link.href;
+          return;
+        }
+      }
+      location.href = "/log";
       return;
     case "me":
       location.href = "/me";

@@ -1,4 +1,5 @@
 ---
+import { getCollection } from "astro:content";
 import StatusLine from "../components/StatusLine.astro";
 import "../styles/terminal.css";
 
@@ -14,6 +15,10 @@ const { title, description, current } = Astro.props;
 // as a bare URL with no title — the one place a stranger decides whether to
 // click. No image: this page has nothing photographic to show, and inventing a
 // card graphic would be decoration standing in for the thing itself.
+// Advertised only once there is something in it: a feed with no items is a
+// small false promise, and this site does not get to make those.
+const hasEntries = (await getCollection("log")).length > 0;
+
 const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://zae.life").href;
 ---
 
@@ -34,8 +39,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://zae.life").
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta name="twitter:card" content="summary" />
-    <!-- The RSS <link> returns with Task 10. Advertising a feed with nothing in
-         it is a small false promise, and this site does not get to make those. -->
+    {
+      hasEntries && (
+        <link rel="alternate" type="application/rss+xml" title="zae.life attestations" href="/rss.xml" />
+      )
+    }
   </head>
   <body>
     <main class="term" id="term">

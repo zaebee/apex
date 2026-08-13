@@ -39,3 +39,37 @@ repo = "zaebee/memory-facets"
 host = "grani.zae.life"
 title = "grani"
 what = "Грани Памяти — a Telegram WebApp game. Held the apex until now."
+
+[chat]
+repo = "zaebee/chat"
+host = "chat.zae.life"
+title = "chat"
+what = "Hive Chat — the living-application ecosystem where ATCG started."
+
+[crm]
+repo = "zaebee/agents-list"
+host = "crm.zae.life"
+title = "crm"
+what = "AI-CRM routing work across 59 specialised agents."
+
+[medicine]
+repo = "zaebee/medicine"
+host = "medicine.zae.life"
+title = "medicine"
+what = "Clinic site. Pivoted from Wagtail to a WordPress MVP after meeting the client."
+
+[quiz]
+repo = "zaebee/tech-quiz"
+host = "quiz.zae.life"
+title = "quiz"
+what = "Quiz platform, built and sold as a finished product."
+
+[crash-hunter]
+repo = "zaebee/crash-hunter"
+title = "crash-hunter"
+what = "DePIN network for crowdsourcing and verifying accident data."
+
+[agents]
+repo = "zaebee/agents"
+title = "agents"
+what = "ElizaOS agent configurations."

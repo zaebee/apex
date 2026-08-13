@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { parse as parseToml } from "smol-toml";
-import { EMPTY_HISTORY, type History, type HostRecord } from "./history";
+import { EMPTY_HISTORY, type History, type HostRecord, takeRecord } from "./history";
 import { type HealthSnapshot, resolveStatus, type Status } from "./status";
 
 export interface RepoStats {
@@ -121,7 +121,7 @@ export function mergeDistricts(
       learned: str(s.learned),
       status,
       code,
-      observed: host ? (history.hosts?.[host] ?? null) : null,
+      observed: host ? takeRecord(history.hosts?.[host], new Date()) : null,
       stats: repo ? takeStats(stats[repo]) : null,
     };
   });

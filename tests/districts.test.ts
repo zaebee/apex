@@ -181,3 +181,14 @@ test("a real instant round-trips and survives", () => {
   const aura = mergeDistricts(toml, good, health).find((d) => d.id === "aura");
   expect(aura?.stats?.readAt).toBe(real);
 });
+
+// updateHistory validates on the way in; the read path has to as well, or a
+// malformed `since` reaches Intl.format as an Invalid Date and throws mid-build.
+test("a corrupt history record is refused on the read path, not rendered", () => {
+  const bad = {
+    updatedAt: "x",
+    hosts: { "aura.zae.life": { state: "cold", since: "whenever", checks: 9, gaps: 0 } },
+  } as unknown as Parameters<typeof mergeDistricts>[3];
+  const aura = mergeDistricts(toml, stats, health, bad).find((d) => d.id === "aura");
+  expect(aura?.observed).toBeNull();
+});

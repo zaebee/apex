@@ -169,3 +169,22 @@ test("holes in the streak are counted, not smoothed over", () => {
 test("a living district reports its own streak", () => {
   expect(observedFor(d({ observed: watched({ state: "alive" }) }))).toContain("answering in 47");
 });
+
+// `since` is a UTC instant. Formatted in the runner's local zone it shifts a
+// day on any negative offset, and the site would testify to 31 Jul for a check
+// made on 1 Aug. The formatter pins the zone; this pins the formatter.
+test("the rendered date does not move with the machine's timezone", () => {
+  const line = observedFor(
+    d({ status: "cold", observed: watched({ since: "2026-08-01T02:00:00.000Z" }) }),
+    new Date("2026-08-20T00:00:00Z"),
+  );
+  expect(line).toContain("since 1 Aug");
+});
+
+test("a streak older than eleven months carries its year", () => {
+  const line = observedFor(
+    d({ status: "cold", observed: watched({ since: "2025-08-20T10:00:00.000Z" }) }),
+    new Date("2026-09-20T00:00:00Z"),
+  );
+  expect(line).toContain("Aug 25");
+});

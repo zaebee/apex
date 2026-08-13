@@ -30,7 +30,10 @@ export const EMPTY_HISTORY: History = { updatedAt: "", hosts: {} };
  *  trusted — the same discipline the snapshot gets. Anything malformed is
  *  discarded, which restarts that host's record at this observation instead of
  *  carrying a number nobody can account for. */
-function takeRecord(raw: unknown, now: Date): HostRecord | null {
+/** Exported because the read path needs it too: mergeDistricts pulls records
+ *  straight out of the file, and a malformed `since` would reach Intl.format
+ *  as an Invalid Date and throw during the build. */
+export function takeRecord(raw: unknown, now: Date): HostRecord | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
 
@@ -62,48 +65,55 @@ function observe(entry: { ok: boolean; offSite?: boolean }): ObservedState {
   return "unknown";
 }
 
+/** Validated on the way in: the file is read off disk like any other, and a
+ *  record nobody can account for is discarded rather than carried. */
+function carriedForward(previous: History, now: Date): Record<string, HostRecord> {
+  const out: Record<string, HostRecord> = {};
+  for (const [host, raw] of Object.entries(previous?.hosts ?? {})) {
+    const kept = takeRecord(raw, now);
+    if (kept) out[host] = kept;
+  }
+  return out;
+}
+
+const withGap = (rec: HostRecord): HostRecord => ({ ...rec, gaps: rec.gaps + 1 });
+
 /** Folds one snapshot into the running record. Pure: the caller reads and
  *  writes the file, which keeps every rule above testable without a disk. */
 export function updateHistory(previous: History, snapshot: HealthSnapshot, now: Date): History {
-  const hosts: Record<string, HostRecord> = {};
+  const hosts = carriedForward(previous, now);
+  const entries = Object.entries(snapshot?.entries ?? {});
+  const updatedAt = now.toISOString();
 
-  // carried forward, including hosts no longer on the allowlist: a record of
-  // what was observed does not stop being true because the map moved on
-  for (const [host, raw] of Object.entries(previous?.hosts ?? {})) {
-    const kept = takeRecord(raw, now);
-    if (kept) hosts[host] = kept;
-  }
-
-  const blind = snapshot.ok !== true;
-  const seen = new Set(Object.keys(snapshot?.entries ?? {}));
-
-  // A host carried forward but not in this snapshot — dropped from the
-  // allowlist, or added back later — was not observed either. Without this a
-  // record could resume after six months and still read "3 checks, no gaps":
-  // an unbroken watch nobody kept.
-  if (!blind) {
-    for (const [host, rec] of Object.entries(hosts)) {
-      if (!seen.has(host)) hosts[host] = { ...rec, gaps: rec.gaps + 1 };
+  // A run that observed nothing confirms nothing and breaks nothing. Every
+  // record already held gains a hole; a host never seen gets none, because a
+  // gap is not a first sighting.
+  if (snapshot.ok !== true) {
+    for (const [host] of entries) {
+      const prior = hosts[host];
+      if (prior) hosts[host] = withGap(prior);
     }
+    return { updatedAt, hosts };
   }
 
-  for (const [host, entry] of Object.entries(snapshot?.entries ?? {})) {
+  // Carried forward but absent from this snapshot — dropped from the allowlist,
+  // or added back later — was not observed either. Without this a record could
+  // resume after six months still reading "3 checks, no gaps": an unbroken
+  // watch nobody kept.
+  const seen = new Set(entries.map(([host]) => host));
+  for (const [host, rec] of Object.entries(hosts)) {
+    if (!seen.has(host)) hosts[host] = withGap(rec);
+  }
+
+  for (const [host, entry] of entries) {
     const prior = hosts[host];
-
-    if (blind) {
-      // nothing was observed, so nothing is confirmed and nothing is broken;
-      // a host with no record yet gets none, because a gap is not a first sight
-      if (prior) hosts[host] = { ...prior, gaps: prior.gaps + 1 };
-      continue;
-    }
-
     const state = observe(entry);
 
     hosts[host] =
-      prior && prior.state === state
+      prior?.state === state
         ? { ...prior, checks: prior.checks + 1 }
-        : { state, since: now.toISOString(), checks: 1, gaps: 0 };
+        : { state, since: updatedAt, checks: 1, gaps: 0 };
   }
 
-  return { updatedAt: now.toISOString(), hosts };
+  return { updatedAt, hosts };
 }

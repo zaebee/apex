@@ -41,11 +41,19 @@ export function districtLink(d: District): string | null {
   return null;
 }
 
-const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+// timeZone is explicit: `since` is a UTC instant, and formatting it in the
+// runner's local zone shifts the date a day on any negative offset — the site
+// would testify to 31 Jul for a check made on 1 Aug.
+const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
 const DAY_MONTH_YEAR = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
   year: "2-digit",
+  timeZone: "UTC",
 });
 
 /** The year appears once the streak is old enough that leaving it out would

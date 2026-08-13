@@ -5,10 +5,22 @@ All three answers collected before any was checked. Predictions were committed i
 
 ## Distance from the source
 
-The article was re-read through the same fetching tool, but with a targeted
-question naming six specific sentences rather than a request for a summary. A
-targeted question is a better instrument than a summary — it can return "does not
-appear" — and it is still not the raw page. Every verdict below inherits that.
+Checked twice, at two distances.
+
+First through the same fetching tool as phase 1, but asked a targeted question
+naming six specific sentences rather than for a summary. That is a better
+instrument — it can return "does not appear", which a summary cannot — and it is
+still a tool's account of the page.
+
+Then against the page itself: fetched raw, stripped of markup, and searched
+directly. Both readings agree. The verdicts below are the second reading's, and
+the phase-1 ground truth's caveat about summarising no longer applies to them —
+though it still applies to `ground-truth.md`, which was written at the first
+distance and is corrected at the end of this file.
+
+The raw text is what `scripts/provenance.ts` searches, which is why the tool
+exists: the whole check is now a command anyone can re-run, rather than a claim
+about a reading only the synthesiser did.
 
 ## Prediction 1 — held, in the exact form registered
 
@@ -36,9 +48,9 @@ article:
 | --- | --- |
 | "The challenge is to move from chatbots to agents… not just capable, but also reliable and safe." | paraphrase, not the article's wording |
 | "Increasing autonomy increases the potential for unpredictable and harmful behavior." | paraphrase of "the autonomy that makes agents useful also introduces a range of new risks" |
-| "Agents can get stuck in infinite loops of reasoning or action." | **not in the article; the topic is not discussed** |
+| "Agents can get stuck in infinite loops of reasoning or action." | **not in the article; loops are not discussed at all** |
 | "Misuse of tools can lead to unintended consequences." | paraphrase |
-| "Reliability requires rigorous evaluation frameworks (evals)." | **not in the article; the topic is not discussed** |
+| "Reliability requires rigorous evaluation frameworks (evals)." | **not in the article.** It names benchmarks once — for prompt-injection resistance and for surfacing uncertainty — and never evaluation frameworks as a reliability requirement |
 
 Zero of five are verbatim. Two describe subjects the article never raises. The
 first carries its own tell — `(суть концепции статьи)` appended inside the
@@ -50,11 +62,20 @@ text.
 
 ### The disclaimers have a shape
 
-Every "не могу подтвердить" in that answer disclaims something adjacent to the
-thesis and unfalsifiable by anyone: a mathematical correlation, the frequency of
-loops in commercial products, whether a recommendation would prove effective,
-whether a barrier will matter for growth. Not one disclaims whether the thesis is
-true now. The form was satisfied completely without a single claim being exposed.
+Twelve of the thirteen "не могу подтвердить" items disclaim something adjacent to
+the thesis and unfalsifiable by anyone: a mathematical correlation, the frequency
+of loops in commercial products, whether a recommendation would prove effective,
+whether a barrier will matter for growth, which integrations a team plans. Each
+leaves the thesis it hangs from standing.
+
+The thirteenth is not like the others. It withdraws calling the article a
+manifesto, as "моя стилистическая интерпретация" — a present-tense disclaimer
+about a characterisation the account had made. It is the one place the form did
+what it was for.
+
+An earlier version of this file said *none* of the thirteen did that. Counting
+them is what showed otherwise. The claim was written in the paragraph explaining
+how claims outrun their evidence.
 
 ## Prediction 3 — held, and it was nearly safe, as recorded
 

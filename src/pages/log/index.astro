@@ -1,10 +1,16 @@
 ---
+import { getCollection } from "astro:content";
 import Terminal from "../../layouts/Terminal.astro";
 
-// Deliberately empty. The spec warns that an empty journal reads as abandoned
-// on day one, and that warning stands — but an invented entry would be worse on
-// a site whose subject is the difference between claiming and observing. The
-// page says what is true: the format exists, nothing has been published yet.
+const entries = (await getCollection("log")).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+const last = entries[0]?.data.date;
+
+// The format, stated once here rather than in every entry. An empty journal
+// still says what it is waiting for — that is more use than a promise to post
+// soon, and truer than pretending there is something to read.
 const format = [
   "  claimed    what was asserted",
   "  observed   what I actually saw",
@@ -18,15 +24,32 @@ const format = [
   current="log"
 >
   <pre class="echo">zae.life ~ $ <b>log</b></pre>
-  <pre class="prose">  0 attestations
-<span class="warn">  ‹ none published yet ›</span>
+  <pre class="prose">  {entries.length} {entries.length === 1 ? "attestation" : "attestations"}
+<span class="dim">  {last ? `last entry · ${fmt(last)}` : "  none published yet"}</span>
+</pre>
 
+  {
+    entries.length > 0 && (
+      <div class="rows">
+        {entries.map((e, i) => (
+          <a class="row" href={`/log/${e.id}`} data-act="log" data-id={String(i + 1)}>
+            {`  ${i + 1}.  `}
+            {e.data.title}
+            <span class="dim">{`\n      ${fmt(e.data.date)}`}</span>
+          </a>
+        ))}
+      </div>
+    )
+  }
+
+  <pre class="prose">
 <span class="dim">  An attestation has three fields:</span>
 
 <span class="dim">{format}</span>
 
 <span class="dim">  The third is the one that matters. Every entry ends by naming the</span>
 <span class="dim">  limit of its own testimony; one that cannot fill it honestly is not</span>
-<span class="dim">  ready, and none are ready yet.</span>
+<span class="dim">  ready.</span>
+{entries.length > 0 ? "\n  rss at /rss.xml" : ""}
 </pre>
 </Terminal>

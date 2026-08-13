@@ -136,7 +136,22 @@ function dispatch(action: Action, echo: string) {
       location.href = "/log";
       return;
     case "logEntry":
-      location.href = `/log/${action.n}`;
+      // the listing numbers entries; the anchor there carries the real slug
+      {
+        // Escaped for the same reason cd is, though nothing unsafe can reach
+        // here today: parse only produces logEntry after /^\d+$/, so `n` is
+        // always a number. The guarantee lives in the parser, one file away —
+        // and an unescaped interpolation beside an escaped one invites the
+        // reader to conclude the difference is meaningful.
+        const link = document.querySelector<HTMLAnchorElement>(
+          `a[data-act="log"][data-id="${CSS.escape(String(action.n))}"]`,
+        );
+        if (link) {
+          location.href = link.href;
+          return;
+        }
+      }
+      location.href = "/log";
       return;
     case "me":
       location.href = "/me";

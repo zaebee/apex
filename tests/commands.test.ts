@@ -106,3 +106,20 @@ test("every action kind the parser can emit is one the click path can too", () =
   );
   for (const k of kinds) expect(produced.has(k)).toBe(true);
 });
+
+// The dispatcher interpolates `n` into a querySelector. That is only safe
+// because the parser refuses anything but digits — the guarantee lives here,
+// a file away from where it is relied on, so it is pinned here.
+test("a log argument carrying selector syntax never becomes an entry", () => {
+  for (const arg of ['1"]', "a[b]", "1;drop", "'", "¹", "1 2", "-1", "1.5"]) {
+    expect(parse(`log ${arg}`).kind).toBe("unknown");
+  }
+});
+
+test("and the same holds through the click path", () => {
+  for (const id of ['1"]', "a[b]", ""]) {
+    const el = { dataset: { act: "log", id } } as unknown as HTMLElement;
+    const action = actionFromClick(el);
+    expect(action?.kind).not.toBe("logEntry");
+  }
+});

@@ -1,3 +1,8 @@
+/// <reference path="../.astro/types.d.ts" />
+/* The generated reference above is what makes `astro:content` resolvable to
+   tsc. Astro writes it, but tsconfig pins `types` to bun, so nothing else pulls
+   it in and the virtual module reads as a missing package. */
+
 /** Vite's `?raw` suffix returns a module's file contents as a string. The build
  *  understands it; tsc does not, because tsconfig pins `types` to bun and never
  *  pulls in vite/client. Declared narrowly rather than referencing the whole of

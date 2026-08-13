@@ -1,0 +1,57 @@
+---
+import { getCollection, render } from "astro:content";
+import Terminal from "../../layouts/Terminal.astro";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("log");
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+const wrap = (s: string, width = 68) => {
+  const out: string[] = [];
+  let line = "";
+  for (const w of s.split(" ")) {
+    if ((line + " " + w).trim().length > width) {
+      out.push(line.trim());
+      line = w;
+    } else line += ` ${w}`;
+  }
+  if (line.trim()) out.push(line.trim());
+  return out.map((l) => `  ${l}`).join("\n");
+};
+
+// astro check cannot parse a string literal carrying an escape inside JSX
+// braces; the constant sidesteps it without changing the output.
+const NL = "\n";
+
+const fields: Array<[string, string]> = [
+  ["claimed  ──", entry.data.claimed],
+  ["observed ──", entry.data.observed],
+  ["attested ──", entry.data.attested],
+];
+---
+
+<Terminal
+  title={`${entry.data.title} — zae.life`}
+  description={entry.data.claimed}
+  current="log"
+>
+  <pre class="echo">zae.life ~ $ <b>log {entry.id}</b></pre>
+  <pre class="prose">  {entry.data.title}
+<span class="dim">  {fmt(entry.data.date)}  ·  attestation</span>
+</pre>
+  {
+    fields.map(([label, value]) => (
+      <pre class="prose">
+        <span class="dim">{`  ${label}`}</span>
+        {NL}
+        {wrap(value)}
+      </pre>
+    ))
+  }
+  <div class="block"><Content /></div>
+</Terminal>

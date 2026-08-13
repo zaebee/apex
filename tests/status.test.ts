@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type HealthSnapshot, MARK, REPLY, resolveStatus, TONE } from "../src/lib/status";
+import { type HealthSnapshot, MARK, replyFor, resolveStatus, TONE } from "../src/lib/status";
 
 const snap = (
   entries: Record<string, { ok: boolean; code: number | null }>,
@@ -108,6 +108,28 @@ test("amber is reserved for unknown and never spent on cold", () => {
 test("every status has a mark and a reply", () => {
   for (const s of ["alive", "cold", "offline", "private", "unknown"] as const) {
     expect(MARK[s].length).toBeGreaterThan(0);
-    expect(REPLY[s].length).toBeGreaterThan(0);
+    expect(replyFor(s, null).length).toBeGreaterThan(0);
+  }
+});
+
+// A constant per status would testify past observation: a host that answered
+// 502 did not time out, and printing "timeout" over it names a failure mode
+// nobody saw.
+test("the reply reports the code that was actually observed", () => {
+  expect(replyFor("cold", 502)).toBe("502");
+  expect(replyFor("cold", 404)).toBe("404");
+  expect(replyFor("alive", 200)).toBe("200 OK");
+  expect(replyFor("alive", 204)).toBe("204 OK");
+});
+
+test("no code means no claim about how it failed", () => {
+  expect(replyFor("cold", null)).toBe("no answer");
+  expect(replyFor("cold", null)).not.toContain("timeout");
+});
+
+test("statuses that were never probed never quote a code", () => {
+  for (const s of ["offline", "private", "unknown"] as const) {
+    expect(replyFor(s, 200)).toBe(replyFor(s, null));
+    expect(replyFor(s, 200)).not.toContain("200");
   }
 });

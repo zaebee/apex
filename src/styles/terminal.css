@@ -217,7 +217,10 @@ a:focus-visible,
 }
 
 /* The host column is recoverable from the district name, so dropping it brings
-   the row inside a 375px screen instead of scrolling it sideways. */
+   the row inside a 375px screen instead of scrolling it sideways. The rows are
+   only half the problem: the legend and the closing prose are long single lines
+   and would push the page sideways on their own, so they wrap on narrow while
+   the columns keep their hard pre. */
 @media (max-width: 620px) {
   body {
     font-size: 12px;
@@ -229,5 +232,20 @@ a:focus-visible,
 
   .host-col {
     display: none;
+  }
+
+  .prose {
+    white-space: pre-wrap;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  /* The continuation line is indented under the district name on wide screens.
+     With the host column gone that indent no longer points at anything, and a
+     long description would reintroduce the sideways scroll the row fix removed. */
+  .what {
+    white-space: pre-wrap;
   }
 }

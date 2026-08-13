@@ -1,12 +1,23 @@
 import type { District } from "./districts";
 import { freshness } from "./freshness";
-import { type HealthSnapshot, MARK, REPLY, type Status } from "./status";
+import { type HealthSnapshot, MARK, replyFor, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
   s.length >= n ? s : s + " ".repeat(n - s.length);
 
-/** `cold` is not a word a visitor knows. One grey line removes the guessing. */
-export const LEGEND = "● answering now    ○ was deployed, silent now    · never a web service";
+/** `cold` is not a word a visitor knows. One grey line removes the guessing.
+ *  The `?` and `▪` glyphs are appended only when a district actually holds that
+ *  status — explaining a symbol that is not on the page is noise, and leaving
+ *  one that is on the page unexplained is worse. */
+const LEGEND_BASE = "● answering now    ○ was deployed, silent now    · never a web service";
+export const LEGEND = LEGEND_BASE;
+
+function legendFor(districts: District[]): string {
+  const extra: string[] = [];
+  if (districts.some((d) => d.status === "unknown")) extra.push("? not observed");
+  if (districts.some((d) => d.status === "private")) extra.push("▪ private");
+  return extra.length ? `${LEGEND_BASE}\n${extra.join("    ")}` : LEGEND_BASE;
+}
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
@@ -37,7 +48,7 @@ export function districtCells(d: District, opts: { narrow?: boolean } = {}): Dis
     mark: `${MARK[d.status]}  `,
     id: pad(d.id, 13),
     host: opts.narrow ? "" : pad(d.host ?? "—", 22),
-    reply: pad(REPLY[d.status], 11),
+    reply: pad(replyFor(d.status, d.code), 11),
     stats: pad(d.stats ? `${d.stats.commits}c / ${d.stats.activeDays}d` : "—", 11),
     last: shortMonth(d.stats?.last ?? ""),
   };
@@ -82,5 +93,13 @@ export function summaryLines(
         : `health unknown — last successful check ${last.label}`;
   }
 
-  return [counts.join(" · "), age, LEGEND];
+  return [counts.join(" · "), age, legendFor(districts)];
+}
+
+/** The width of the mark and id columns, so a continuation line can be indented
+ *  under the district name without hardcoding a number that silently drifts if
+ *  the column widths ever change. */
+export function continuationIndent(d: District, opts: { narrow?: boolean } = {}): number {
+  const c = districtCells(d, opts);
+  return c.mark.length + c.id.length;
 }

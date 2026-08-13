@@ -1,6 +1,6 @@
 ---
 import { loadDistricts } from "../lib/districts";
-import { districtCells, summaryLines } from "../lib/format";
+import { continuationIndent, districtCells, summaryLines } from "../lib/format";
 import { freshness } from "../lib/freshness";
 import { TONE } from "../lib/status";
 
@@ -12,16 +12,31 @@ const { districts, health } = await loadDistricts();
 const f = freshness(health?.checkedAt ?? null, now);
 const [counts, age, legend] = summaryLines(districts, health, now);
 
+const observed = health?.ok === true;
 const cold = districts.filter((d) => d.status === "cold").length;
-const ageIsSuspect = health?.ok !== true || f.stale;
+
+// The closing line asserts a count. It may only appear when the check that
+// produced that count actually succeeded — with a failed snapshot no district
+// resolves to cold, and "0 districts are not answering. That is accurate" would
+// be the page testifying to something nobody observed.
+const sayCold = observed && cold > 0;
+
+// Built here rather than in the template: text interleaved with expressions
+// across source lines inherits the template's own newlines and indentation, and
+// this block sits inside a <pre>.
+const coldLine = [
+  `  ${cold === 1 ? "One district is" : `${cold} districts are`} not answering. That is`,
+  `  accurate — I have not redeployed ${cold === 1 ? "it" : "them"}. Claiming otherwise`,
+  "  would have been easier.",
+].join("\n");
 ---
 
 <pre class="echo">zae.life ~ $ <b>whoami &amp;&amp; districts --status</b></pre>
-<pre>  <a href="/me">zaebee</a><span class="dim"> · witness, apprentice</span>
+<pre class="prose">  <a href="/me">zaebee</a><span class="dim"> · witness, apprentice</span>
 <span class="warn">  ‹ tagline: yours to write ›</span>
 
   {counts}
-<span class={ageIsSuspect ? "warn" : "dim"}>  {age}</span>
+<span class={observed && !f.stale ? "dim" : "warn"}>  {age}</span>
 <span class="dim">  {legend}</span>
 </pre>
 
@@ -30,7 +45,7 @@ const ageIsSuspect = health?.ok !== true || f.stale;
     districts.map((d) => {
       const c = districtCells(d);
       return (
-        <button class="row" data-act="cd" data-id={d.id}>
+        <button type="button" class="row" data-act="cd" data-id={d.id}>
           <span class={TONE[d.status]}>{c.mark}</span>
           {c.id}
           <span class="dim host-col">{c.host}</span>
@@ -40,7 +55,7 @@ const ageIsSuspect = health?.ok !== true || f.stale;
             {c.last}
           </span>
           {d.status === "alive" && d.what ? (
-            <span class="dim">{`\n   ${" ".repeat(13)}${d.what}`}</span>
+            <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span>
           ) : null}
         </button>
       );
@@ -48,7 +63,4 @@ const ageIsSuspect = health?.ok !== true || f.stale;
   }
 </div>
 
-<pre>
-<span class="dim">  {cold} districts are not answering. That is accurate — I have not</span>
-<span class="dim">  redeployed them. Claiming otherwise would have been easier.</span>
-</pre>
+{sayCold && <pre class="prose"><span class="dim">{coldLine}</span></pre>}

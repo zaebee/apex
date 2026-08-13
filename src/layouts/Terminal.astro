@@ -29,8 +29,12 @@ const { title, description, current } = Astro.props;
             >click anything, or type — cd &lt;district&gt; · log · me · help</span
           >
         </div>
+        <!-- tabindex=-1: a 1x1 transparent input in the tab order makes focus
+             vanish for a keyboard user. The command island focuses it
+             programmatically; it never needs to be tab-reachable. -->
         <input
           id="sink"
+          tabindex="-1"
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"

@@ -1,13 +1,18 @@
-// "/" for the curl branch. The rest are the paths the apex used to serve before
-// Грани Памяти moved to grani.zae.life: Telegram caches a bot's menu-button URL
-// and people share links, so those keep working instead of landing on a terminal
-// that knows nothing about them. Note /api/v1 specifically — /api/ping is this
-// site's own live probe and must not be swept up.
+// "/" for the curl branch, /api/v1 for the API the apex used to serve before
+// Грани Памяти moved to grani.zae.life — a client holding the old origin still
+// reaches it. /api/v1 specifically: /api/ping is this site's own live probe and
+// must not be swept up.
+//
+// Deliberately NOT the WebApp itself. Telegram opens the bare origin, and that
+// app is mounted at "/" precisely so no redirect can drop the "#tgWebAppData=…"
+// fragment — see the comment in memory-facets src/app/api/app.py. Putting a
+// redirect back in that path would reintroduce what they engineered around; the
+// bot's menu button pointing at the new origin is what moves it, not this.
 export const config = {
-  matcher: ["/", "/webapp", "/webapp/:path*", "/api/v1/:path*"],
+  matcher: ["/", "/api/v1/:path*"],
 };
 
-const MOVED_PREFIXES = ["/webapp", "/api/v1"];
+const MOVED_PREFIXES = ["/api/v1"];
 const MOVED_TO = "https://grani.zae.life";
 
 /** Exported so the test exercises this regex rather than a copy of it. A copy

@@ -10,6 +10,20 @@ export const GET: APIRoute = async () => {
   const observed = health?.ok === true;
   const cold = districts.filter((d) => d.status === "cold").length;
 
+  // built above the array so the sentence is assembled once, in plain
+  // statements, rather than as template literals nested inside a spread
+  const subject = cold === 1 ? "One district is" : `${cold} districts are`;
+  const them = cold === 1 ? "it" : "them";
+  const coldLines =
+    observed && cold > 0
+      ? [
+          `  ${subject} not answering. That is`,
+          `  accurate — I have not redeployed ${them}. Claiming otherwise`,
+          "  would have been easier.",
+          "",
+        ]
+      : [];
+
   const body = [
     "",
     "  zaebee · witness, apprentice",
@@ -20,14 +34,7 @@ export const GET: APIRoute = async () => {
     "",
     // the same rule the page follows: this line asserts a count, so it may only
     // appear when the check that produced the count actually succeeded
-    ...(observed && cold > 0
-      ? [
-          `  ${cold === 1 ? "One district is" : `${cold} districts are`} not answering. That is`,
-          `  accurate — I have not redeployed ${cold === 1 ? "it" : "them"}. Claiming otherwise`,
-          "  would have been easier.",
-          "",
-        ]
-      : []),
+    ...coldLines,
     "  https://zae.life/districts.json    the merged record",
     "  https://zae.life/health.json       the raw snapshot",
     "",

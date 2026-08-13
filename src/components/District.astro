@@ -1,6 +1,6 @@
 ---
 import type { District } from "../lib/districts";
-import { continuationIndent, districtCells } from "../lib/format";
+import { continuationIndent, districtCells, districtLink } from "../lib/format";
 import { TONE } from "../lib/status";
 
 interface Props {
@@ -12,7 +12,7 @@ const c = districtCells(d);
 // <details> so the card opens by click and by keyboard with no JavaScript at
 // all. The command layer sets `open` on this same element, which is why cd and
 // a click cannot drift apart: one thing to change, one way to change it.
-const link = d.host ? `https://${d.host}` : d.repo ? `https://github.com/${d.repo}` : null;
+const link = districtLink(d);
 
 const label = (s: string) => `    ${s}${" ".repeat(Math.max(0, 10 - s.length))}`;
 const unwritten = "‹ not written yet ›";

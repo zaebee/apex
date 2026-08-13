@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { loadDistricts } from "../lib/districts";
+import { districtLink } from "../lib/format";
 import { replyFor } from "../lib/status";
 
 // A proposed convention with uneven adoption and no provider commitment. It
@@ -21,7 +22,7 @@ export const GET: APIRoute = async () => {
     "## Districts",
     "",
     ...districts.map((d) => {
-      const where = d.host ? `https://${d.host}` : d.repo ? `https://github.com/${d.repo}` : "—";
+      const where = districtLink(d) ?? "—";
       const built = d.stats
         ? ` (${d.stats.commits} commits across ${d.stats.activeDays} active days)`
         : "";

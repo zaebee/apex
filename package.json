@@ -1,0 +1,20 @@
+{
+  "name": "apex",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "bun test",
+    "lint": "biome check .",
+    "fmt": "biome check --write .",
+    "scan": "bun run scripts/scan.ts",
+    "health": "bun run scripts/health.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "@types/bun": "^1.3.14",
+    "typescript": "^7.0.2"
+  }
+}

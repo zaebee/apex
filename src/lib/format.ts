@@ -40,6 +40,29 @@ export function districtLink(d: District): string | null {
   return null;
 }
 
+const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+
+/** What the record supports, said as narrowly as it is true.
+ *
+ *  Not "silent since sep'25". `chat` last saw a commit in September 2025, but
+ *  this site began watching on the day it went live; what it can testify to is
+ *  the checks it made. Naming the number of observations, and the holes in
+ *  them, is the difference between "it is down" and "I watched it be down".
+ *
+ *  Returns null below two checks: "no answer in 1 check" is the status column
+ *  again, in more words. */
+export function observedFor(d: District): string | null {
+  const o = d.observed;
+  if (!o || o.checks < 2) return null;
+
+  const verb =
+    o.state === "alive" ? "answering" : o.state === "cold" ? "no answer" : "not observed";
+  const since = DAY_MONTH.format(new Date(o.since));
+  const holes = o.gaps > 0 ? `, ${o.gaps} ${o.gaps === 1 ? "gap" : "gaps"}` : "";
+
+  return `${verb} in ${o.checks} checks since ${since}${holes}`;
+}
+
 export interface DistrictCells {
   mark: string;
   id: string;

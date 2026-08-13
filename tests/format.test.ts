@@ -4,6 +4,7 @@ import {
   districtCells,
   districtRow,
   LEGEND,
+  observedFor,
   pad,
   shortMonth,
   summaryLines,
@@ -20,6 +21,7 @@ const d = (over: Partial<District> = {}): District => ({
   learned: null,
   status: "alive",
   code: 200,
+  observed: null,
   stats: { commits: 517, activeDays: 41, first: "2026-01-24", last: "2026-08-13" },
   ...over,
 });
@@ -133,4 +135,37 @@ test("the legend explains cold without a separate panel", () => {
   expect(LEGEND).toContain("answering now");
   expect(LEGEND).toContain("was deployed");
   expect(LEGEND).toContain("never a web service");
+});
+
+// --- what the record supports, said as narrowly as it is true ---
+
+const watched = (over: Partial<NonNullable<District["observed"]>> = {}) => ({
+  state: "cold" as const,
+  since: "2026-08-01T09:00:00.000Z",
+  checks: 47,
+  gaps: 0,
+  ...over,
+});
+
+test("a single observation claims nothing beyond the status column", () => {
+  expect(observedFor(d({ observed: watched({ checks: 1 }) }))).toBeNull();
+  expect(observedFor(d({ observed: null }))).toBeNull();
+});
+
+test("the line names the checks, not a date nobody watched", () => {
+  const line = observedFor(d({ status: "cold", observed: watched() }));
+  expect(line).toBe("no answer in 47 checks since 1 Aug");
+  // chat last committed in sep'25; the site began watching in August. The line
+  // must not borrow the commit date and call it the start of the silence.
+  expect(line).not.toContain("25");
+});
+
+test("holes in the streak are counted, not smoothed over", () => {
+  expect(observedFor(d({ observed: watched({ gaps: 2 }) }))).toContain("2 gaps");
+  expect(observedFor(d({ observed: watched({ gaps: 1 }) }))).toContain("1 gap");
+  expect(observedFor(d({ observed: watched({ gaps: 0 }) }))).not.toContain("gap");
+});
+
+test("a living district reports its own streak", () => {
+  expect(observedFor(d({ observed: watched({ state: "alive" }) }))).toContain("answering in 47");
 });

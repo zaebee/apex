@@ -1,6 +1,6 @@
 ---
 import type { District } from "../lib/districts";
-import { continuationIndent, districtCells, districtLink } from "../lib/format";
+import { continuationIndent, districtCells, districtLink, observedFor } from "../lib/format";
 import { freshness } from "../lib/freshness";
 import { TONE } from "../lib/status";
 
@@ -9,6 +9,12 @@ interface Props {
 }
 const { district: d } = Astro.props;
 const c = districtCells(d);
+
+// One second line, whichever is the more useful thing to know about this
+// district: what a living one is, or how long a silent one has been silent.
+// They never compete — a district is one or the other.
+const watched = observedFor(d);
+const secondLine = d.status === "alive" ? (d.what ?? watched) : watched;
 
 // <details> so the card opens by click and by keyboard with no JavaScript at
 // all. The command layer sets `open` on this same element, which is why cd and
@@ -49,6 +55,7 @@ for (const [k, v] of [
 ] as const) {
   lines.push({ label: label(k), value: v ?? unwritten, cls: v ? "" : "warn" });
 }
+if (watched) lines.push({ label: label("watched"), value: watched, cls: "" });
 
 const NL = "\n";
 const footer = "    why and learned come from districts.toml — your words, never generated.";
@@ -59,7 +66,7 @@ const footer = "    why and learned come from districts.toml — your words, nev
      selection — resolved to a cd toggle and was preventDefault()ed, so the card
      fought the reader and its one link could never be followed. -->
 <details class="district" id={d.id}>
-  <summary class="row" data-act="cd" data-id={d.id}><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{d.status === "alive" && d.what ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span> : null}</summary>
+  <summary class="row" data-act="cd" data-id={d.id}><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{secondLine ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${secondLine}`}</span> : null}</summary>
 
   <div class="card">
     <pre class="prose">{lines.map((l) => <Fragment><span class="dim">{l.label}</span><span class={l.cls}>{l.value}</span>{NL}</Fragment>)}</pre>

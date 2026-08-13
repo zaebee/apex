@@ -120,3 +120,34 @@ test("the middleware matches terminal agents and not browsers", () => {
   expect(TERMINAL_UA.test("Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/120")).toBe(false);
   expect(TERMINAL_UA.test("Googlebot/2.1")).toBe(false);
 });
+
+// The map says a district is silent; the history says across how many checks
+// and with how many holes. Published so the count can be checked, not believed.
+test("history.json publishes the counts the page renders from", async () => {
+  const h = await Bun.file(`${dist}/history.json`).json();
+  expect(h).toHaveProperty("updatedAt");
+  expect(h).toHaveProperty("hosts");
+  for (const rec of Object.values(h.hosts) as Array<Record<string, unknown>>) {
+    expect(["alive", "cold", "unknown"]).toContain(String(rec.state));
+    expect(typeof rec.checks).toBe("number");
+    expect(typeof rec.gaps).toBe("number");
+  }
+});
+
+test("no district claims an observation the record does not hold", async () => {
+  const { districts } = (await Bun.file(`${dist}/districts.json`).json()) as {
+    districts: Array<{ id: string; host: string | null }>;
+  };
+  const h = await Bun.file(`${dist}/history.json`).json();
+  const html = await read("index.html");
+
+  for (const d of districts) {
+    const card =
+      new RegExp(`<details[^>]*\\sid="${d.id}"[\\s\\S]*?</details>`).exec(html)?.[0] ?? "";
+    if (!card.includes("checks since")) continue;
+    // a "watched" line may only appear for a host the record actually covers
+    expect(d.host).toBeTruthy();
+    expect(h.hosts[d.host as string]).toBeDefined();
+    expect(h.hosts[d.host as string].checks).toBeGreaterThan(1);
+  }
+});

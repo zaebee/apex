@@ -44,8 +44,9 @@ opened with the five as
 
 > баланс автономности, контроля, alignment, transparency и security
 
-which drops *privacy*, drops *securing agents' interactions*, and adds
-*autonomy* — right shape, wrong members, which is the prediction verbatim. Its
+which puts *autonomy* and *security* where the article has *securing agents'
+interactions* and *protecting privacy* — right shape, wrong members, which is
+the prediction verbatim. Its
 author caught the *security* / *privacy* substitution itself in phase 2; nobody
 went back and rescored this file until a reviewer noticed.
 
@@ -74,8 +75,8 @@ and proceeded to recommend a permission sandbox for its Google, Notion and Slack
 access, graduated autonomy levels for its calendar and mail, and a verifier
 layer before its critical tool calls.
 
-None of it exists. zae.life is a static page: a map of projects, two journal
-entries, and machine-readable records of both. Nothing generates text, no model
+None of it exists. At dispatch zae.life was a static page: a map of projects,
+two journal entries, and machine-readable records of both. Nothing generates text, no model
 runs behind any route, there is no calendar, no mail, no integrations, and no
 agent. The hedge "judging by the positioning" marks the moment the account
 stopped reading and started inferring.

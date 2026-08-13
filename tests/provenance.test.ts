@@ -165,6 +165,45 @@ test("a blockquote line is not checked twice when it contains an inline quotatio
   );
 });
 
+// The witness answers in this repository write every citation as
+// `**Цитата:** *"…"*`. A boundary rule admitting only whitespace rejected all
+// of them: the tool extracted nothing from the one input it was built for,
+// while an entry claimed it would have caught them.
+test("emphasis and an ellipsis around the marks do not hide a quotation", () => {
+  expect(extractQuotations('He stressed **"Users can choose"** loudly.').map((q) => q.raw)).toEqual(
+    ["Users can choose"],
+  );
+  expect(extractQuotations('He quoted "Users can choose"… and stopped.').map((q) => q.raw)).toEqual(
+    ["Users can choose"],
+  );
+});
+
+// `.` never matches `\r`, and without the m flag `$` demands end of string, so
+// a file saved with CRLF used to lose every blockquote citation in silence.
+test("a CRLF file does not lose its blockquote citations", () => {
+  expect(
+    extractQuotations("> Users can choose which tools\r\nplain line").map((q) => q.raw),
+  ).toEqual(["Users can choose which tools"]);
+});
+
+// Tied to the committed evidence rather than to a fixture, because the claim
+// worth defending is about this answer, not about a string invented to pass.
+test("the five citations in the committed witness answer are extracted", async () => {
+  const raw = await Bun.file("experiments/03-trustworthy-agents/answers-phase-2.md").text();
+  const gemma = raw.slice(raw.indexOf("// from bee.gemma"));
+  const found = extractQuotations(gemma).map((q) => q.raw);
+
+  for (const citation of [
+    "Increasing autonomy increases the potential for unpredictable and harmful behavior.",
+    "Agents can get stuck in infinite loops of reasoning or action.",
+    "Misuse of tools can lead to unintended consequences.",
+    "Reliability requires rigorous evaluation frameworks (evals).",
+  ]) {
+    expect(found).toContain(citation);
+  }
+  expect(found.some((q) => q.startsWith("The challenge is to move from chatbots"))).toBe(true);
+});
+
 test("figures are surfaced with context, and repeats keep their own", () => {
   const figures = extractFigures("It ran 87 tasks, and 87 percent of them passed.");
   expect(figures.map((f) => f.value)).toEqual(["87", "87"]);

@@ -57,8 +57,8 @@ article:
 | "Reliability requires rigorous evaluation frameworks (evals)." | **not in the article.** It names benchmarks once — for prompt-injection resistance and for surfacing uncertainty — and never evaluation frameworks as a reliability requirement |
 
 Zero of five are verbatim. Two describe subjects the article never raises. The
-first carries its own tell — `(суть концепции статьи)` appended inside the
-citation, marking it as a paraphrase while leaving the quotation marks on.
+first carries its own tell — `(суть концепции статьи)` appended just outside the
+closing mark, marking it as a paraphrase while leaving the quotation marks on.
 
 **The provenance pass is not a lie detector. It is a claim generator.** A request
 for evidence produces evidence-shaped text at whatever rate the account produces
@@ -73,8 +73,8 @@ whether a recommendation would prove effective, whether a barrier will matter
 for growth, which integrations a team plans. Each
 leaves the thesis it hangs from standing.
 
-The thirteenth is not like the others. It withdraws calling the article a
-manifesto, as "моя стилистическая интерпретация" — a present-tense disclaimer
+The odd one out is not like the others, and it stands first in the list rather
+than last. It withdraws calling the article a manifesto, as "моя стилистическая интерпретация" — a present-tense disclaimer
 about a characterisation the account had made. It is the one place the form did
 what it was for.
 

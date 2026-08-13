@@ -1,11 +1,11 @@
 import { type Action, actionFromClick, parse } from "../lib/commands";
 
 const term = document.getElementById("term");
-const stream = document.getElementById("stream");
+const output = document.getElementById("output");
 const sink = document.getElementById("sink") as HTMLInputElement | null;
 const typed = document.getElementById("typed");
 const hint = document.getElementById("hint");
-if (!term || !stream || !sink || !typed || !hint) throw new Error("terminal markup missing");
+if (!term || !output || !sink || !typed || !hint) throw new Error("terminal markup missing");
 
 const history: string[] = [];
 let hpos = -1;
@@ -17,13 +17,26 @@ let hpos = -1;
  *  and status fields decoded from the /api/ping response. */
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function emit(html: string, echo?: string) {
+/** Returns the result element, not the whole block, so a long-running command
+ *  can replace its own output without deleting the record of what was asked. */
+function emit(html: string, echo?: string): HTMLElement {
   const block = document.createElement("div");
   block.className = "block";
-  block.innerHTML = (echo ? `<pre class="echo">zae.life ~ $ <b>${esc(echo)}</b></pre>` : "") + html;
-  stream?.appendChild(block);
+
+  if (echo) {
+    const line = document.createElement("pre");
+    line.className = "echo";
+    line.innerHTML = `zae.life ~ $ <b>${esc(echo)}</b>`;
+    block.appendChild(line);
+  }
+
+  const result = document.createElement("div");
+  result.innerHTML = html;
+  block.appendChild(result);
+
+  output?.appendChild(block);
   block.scrollIntoView({ block: "nearest" });
-  return block;
+  return result;
 }
 
 const dim = (text: string) => `<pre class="prose"><span class="dim">${esc(text)}</span></pre>`;
@@ -59,15 +72,15 @@ interface PingSnapshot {
 
 /** Replaces its own "probing…" block rather than appending under it, so the
  *  transcript never shows a pending line above a finished one. */
-async function livePing(block: HTMLElement) {
+async function livePing(result: HTMLElement, signal: AbortSignal) {
   const fail = (why: string) => {
-    block.innerHTML =
+    result.innerHTML =
       `<pre class="prose"><span class="warn">  ${esc(why)}</span>\n` +
       `<span class="dim">  That is unknown, not dead — the snapshot above still stands, with its age.</span></pre>`;
   };
 
   try {
-    const res = await fetch("/api/ping", { headers: { accept: "application/json" } });
+    const res = await fetch("/api/ping", { headers: { accept: "application/json" }, signal });
     if (!res.ok) return fail(`the probe endpoint answered ${res.status}.`);
 
     const snap = (await res.json()) as PingSnapshot;
@@ -92,7 +105,7 @@ async function livePing(block: HTMLElement) {
       .join("\n");
 
     const answering = all.filter((e) => e.ok === true).length;
-    block.innerHTML =
+    result.innerHTML =
       `<pre class="prose">${rows}\n\n` +
       `<span class="dim">  probed just now · ${answering}/${all.length} answering</span></pre>`;
   } catch {
@@ -121,9 +134,10 @@ function dispatch(action: Action, echo: string) {
       return;
 
     case "cd": {
-      const el = document.querySelector<HTMLDetailsElement>(
-        `details[data-act="cd"][data-id="${CSS.escape(action.id)}"]`,
+      const summary = document.querySelector<HTMLElement>(
+        `summary[data-act="cd"][data-id="${CSS.escape(action.id)}"]`,
       );
+      const el = summary?.closest("details") ?? null;
       if (!el) {
         // off the map: let the map's own anchor handle it rather than claiming
         // the district does not exist from a page that never listed it
@@ -149,13 +163,15 @@ function dispatch(action: Action, echo: string) {
       return;
 
     case "ping": {
-      const block = emit(dim("  probing …"), echo);
-      void livePing(block);
+      const result = emit(dim("  probing …"), echo);
+      // bounded like the probe itself: a stalled connection must not leave
+      // "probing …" standing forever, which reads as a pending observation
+      void livePing(result, AbortSignal.timeout(20_000));
       return;
     }
 
     case "clear":
-      stream?.replaceChildren();
+      output?.replaceChildren();
       return;
 
     case "sudo":
@@ -189,7 +205,11 @@ term.addEventListener("click", (e) => {
             : (el.dataset.act ?? "");
       dispatch(action, echo);
     }
-    sink?.focus();
+    // Keyboard activation of a <summary> fires a click with detail 0. Pulling
+    // focus into the hidden sink there would teleport a keyboard user past
+    // every remaining row and past the card they just opened; a pointer user
+    // expects the prompt to stay live.
+    if (e.detail !== 0) sink?.focus();
     return;
   }
   // a click meant to select text should not steal focus mid-selection
@@ -217,7 +237,10 @@ sink.addEventListener("keydown", (e) => {
     hint.style.visibility = "";
   } else if (e.key === "ArrowUp") {
     e.preventDefault();
-    if (hpos < history.length - 1) hpos++;
+    // guard the assignment, not just the increment: with no history at all the
+    // unguarded write erased whatever the visitor had typed
+    if (hpos >= history.length - 1) return;
+    hpos++;
     sink.value = history[hpos] ?? "";
     typed.textContent = sink.value;
     hint.style.visibility = sink.value ? "hidden" : "";
@@ -229,5 +252,22 @@ sink.addEventListener("keydown", (e) => {
     hint.style.visibility = sink.value ? "hidden" : "";
   }
 });
+
+/** `cd` from another page navigates to /#<id>. Without this the visitor lands
+ *  on a closed row, which is not what the spec says cd does. */
+function openFromHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (!id) return;
+  const summary = document.querySelector<HTMLElement>(
+    `summary[data-act="cd"][data-id="${CSS.escape(id)}"]`,
+  );
+  const el = summary?.closest("details");
+  if (!el) return;
+  el.open = true;
+  el.scrollIntoView({ block: "nearest" });
+}
+
+window.addEventListener("hashchange", openFromHash);
+openFromHash();
 
 sink.focus();

@@ -44,8 +44,12 @@ const NL = "\n";
 const footer = "    why and learned come from districts.toml — your words, never generated.";
 ---
 
-<details class="district" data-act="cd" data-id={d.id} id={d.id}>
-  <summary class="row"><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{d.status === "alive" && d.what ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span> : null}</summary>
+<!-- data-act sits on the summary, not the details: with it on the details, every
+     click inside the open card — prose, the outbound link, an attempted text
+     selection — resolved to a cd toggle and was preventDefault()ed, so the card
+     fought the reader and its one link could never be followed. -->
+<details class="district" id={d.id}>
+  <summary class="row" data-act="cd" data-id={d.id}><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{d.status === "alive" && d.what ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span> : null}</summary>
 
   <div class="card">
     <pre class="prose">{lines.map((l) => <Fragment><span class="dim">{l.label}</span><span class={l.cls}>{l.value}</span>{NL}</Fragment>)}</pre>

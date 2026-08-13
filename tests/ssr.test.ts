@@ -43,7 +43,7 @@ interface RenderedRow {
  *  rather than against the library that produced it. */
 function renderedRows(source: string): RenderedRow[] {
   const out: RenderedRow[] = [];
-  const re = /<details[^>]*data-id="([^"]+)"[^>]*>\s*<summary[^>]*>([\s\S]*?)<\/summary>/g;
+  const re = /<summary[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)<\/summary>/g;
   let m = re.exec(source);
   while (m) {
     out.push({
@@ -57,7 +57,7 @@ function renderedRows(source: string): RenderedRow[] {
 }
 
 function renderedCard(source: string, id: string): string {
-  const m = new RegExp(`<details[^>]*data-id="${id}"[\\s\\S]*?<\\/details>`).exec(source);
+  const m = new RegExp(`<details[^>]*\\sid="${id}"[\\s\\S]*?<\\/details>`).exec(source);
   return m ? decode(m[0].replace(/<[^>]*>/g, "")) : "";
 }
 
@@ -137,7 +137,7 @@ test("a card names its unwritten prose rather than filling it", () => {
 });
 
 test("a card reports the commits it has and omits the line it does not", () => {
-  // aura's statistics were read; house is private and was not
+  // aura's statistics were read; house has no host and no stats entry
   expect(renderedCard(withoutScripts, "aura")).toContain("commits across");
   expect(renderedCard(withoutScripts, "house")).not.toContain("commits across");
 });
@@ -149,6 +149,32 @@ test("the page paints its own ground rather than borrowing one", () => {
 
 test("the unwritten tagline is marked unwritten rather than filled in", () => {
   expect(withoutScripts).toContain("tagline: yours to write");
+});
+
+// The dispatch handle must sit on the summary. With it on the <details>, every
+// click inside the open card — prose, the outbound link, a text selection —
+// resolved to a cd toggle and was preventDefault()ed, so the card fought the
+// reader and its one link could never be followed.
+test("the dispatch handle is on the summary, never on the card body", () => {
+  const details = withoutScripts.match(/<details[^>]*>/g) ?? [];
+  expect(details.length).toBeGreaterThan(0);
+  for (const tag of details) expect(tag).not.toContain("data-act");
+
+  const summaries = withoutScripts.match(/<summary[^>]*>/g) ?? [];
+  expect(summaries.length).toBe(details.length);
+  for (const tag of summaries) expect(tag).toContain('data-act="cd"');
+});
+
+test("the map lives outside the container clear empties", () => {
+  // `clear` used to delete the server-rendered city, after which cd answered
+  // "no district" about a district on the allowlist
+  const streamStart = withoutScripts.indexOf('id="stream"');
+  const outputStart = withoutScripts.indexOf('id="output"');
+  const firstDistrict = withoutScripts.indexOf("<details");
+  expect(streamStart).toBeGreaterThan(-1);
+  expect(outputStart).toBeGreaterThan(streamStart);
+  expect(firstDistrict).toBeGreaterThan(streamStart);
+  expect(firstDistrict).toBeLessThan(outputStart);
 });
 
 test("the keyboard is never dropped into the invisible input", () => {

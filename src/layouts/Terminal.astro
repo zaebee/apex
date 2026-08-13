@@ -22,7 +22,12 @@ const { title, description, current } = Astro.props;
   <body>
     <main class="term" id="term">
       <div class="wrap">
+        <!-- The map lives in #stream and is never cleared. Command output goes
+             to #output, so `clear` empties the transcript without deleting the
+             server-rendered city — which used to leave `cd aura` answering
+             "no district", a false statement about a district on the allowlist. -->
         <div id="stream"><slot /></div>
+        <div id="output"></div>
         <div class="promptline" id="promptline">
           <span class="ps1">zae.life ~ $ </span><span class="typed" id="typed"></span><span
             class="cursor"></span><span class="hint" id="hint"

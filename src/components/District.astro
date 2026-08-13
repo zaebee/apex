@@ -8,7 +8,7 @@ import {
   secondLineFor,
 } from "../lib/format";
 import { freshness } from "../lib/freshness";
-import { TONE } from "../lib/status";
+import { replyFor, TONE } from "../lib/status";
 
 interface Props {
   district: District;
@@ -38,7 +38,7 @@ interface Line {
 const lines: Line[] = [];
 // the phrase and the number together: the row has room for one, the card for both
 if (d.host) {
-  const reply = districtCells(d).reply.trim();
+  const reply = replyFor(d.status, d.code);
   lines.push({
     label: label("status"),
     value: d.code === null || reply.includes(String(d.code)) ? reply : `${reply} · ${d.code}`,

@@ -2,11 +2,28 @@ import { expect, test } from "bun:test";
 import { loadDistricts } from "../src/lib/districts";
 import { districtRow } from "../src/lib/format";
 
-const html = await Bun.file("dist/index.html").text();
-/** What a crawler with no JavaScript, and a visitor whose script failed, see.
- *  Today the built page carries no script at all (the island is still empty),
- *  so this is a no-op — it starts discriminating once Task 9 ships the island. */
+/** Astro emits static output to dist/ with no server routes and to dist/client/
+ *  once one exists (/api/ping). Resolved rather than hardcoded so adding or
+ *  removing a function does not fail these tests in a way that reads as a
+ *  rendering bug. */
+async function builtPage(): Promise<string> {
+  for (const p of ["dist/client/index.html", "dist/index.html"]) {
+    const f = Bun.file(p);
+    if (await f.exists()) return await f.text();
+  }
+  throw new Error("no built index.html — run `bun run build` first");
+}
+
+const html = await builtPage();
+/** What a crawler with no JavaScript, and a visitor whose script failed, see. */
 const withoutScripts = html.replace(/<script[\s\S]*?<\/script>/g, "");
+
+// Without this the assertions below would still pass on a page carrying no
+// script at all, and "survives without JavaScript" would mean nothing.
+test("the page does ship a script, so stripping it is a real test", () => {
+  expect(html).toContain("<script");
+  expect(withoutScripts.length).toBeLessThan(html.length);
+});
 
 const decode = (s: string) =>
   s
@@ -26,7 +43,7 @@ interface RenderedRow {
  *  rather than against the library that produced it. */
 function renderedRows(source: string): RenderedRow[] {
   const out: RenderedRow[] = [];
-  const re = /<button[^>]*data-act="cd" data-id="([^"]+)"[^>]*>([\s\S]*?)<\/button>/g;
+  const re = /<details[^>]*data-id="([^"]+)"[^>]*>\s*<summary[^>]*>([\s\S]*?)<\/summary>/g;
   let m = re.exec(source);
   while (m) {
     out.push({
@@ -37,6 +54,11 @@ function renderedRows(source: string): RenderedRow[] {
     m = re.exec(source);
   }
   return out;
+}
+
+function renderedCard(source: string, id: string): string {
+  const m = new RegExp(`<details[^>]*data-id="${id}"[\\s\\S]*?<\\/details>`).exec(source);
+  return m ? decode(m[0].replace(/<[^>]*>/g, "")) : "";
 }
 
 test("every district in the allowlist renders server-side", async () => {
@@ -93,6 +115,31 @@ test("no rendered district is green unless the snapshot observed it", async () =
     const observed = Object.values(health?.entries ?? {}).some((e) => e.ok === true);
     expect(observed).toBe(true);
   }
+});
+
+// `cd <district>` is specified as opening the card. Built on <details>, so the
+// card exists in the markup and opens by click and by keyboard with no script
+// at all; the command layer toggles the same `open` property.
+test("every district ships an openable card, not just a row", async () => {
+  const { districts } = await loadDistricts();
+  for (const d of districts) {
+    const card = renderedCard(withoutScripts, d.id);
+    expect(card).toContain("what");
+    expect(card).toContain("why");
+    expect(card).toContain("learned");
+  }
+});
+
+test("a card names its unwritten prose rather than filling it", () => {
+  // no district has why/learned written yet, and the page says so
+  const card = renderedCard(withoutScripts, "aura");
+  expect(card).toContain("not written yet");
+});
+
+test("a card reports the commits it has and omits the line it does not", () => {
+  // aura's statistics were read; house is private and was not
+  expect(renderedCard(withoutScripts, "aura")).toContain("commits across");
+  expect(renderedCard(withoutScripts, "house")).not.toContain("commits across");
 });
 
 test("the page paints its own ground rather than borrowing one", () => {

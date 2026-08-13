@@ -97,6 +97,24 @@ pre {
   font-variant-numeric: tabular-nums;
   display: block;
   text-decoration: none;
+  /* no disclosure triangle: the row is the row, and a marker would shift every
+     column by its width */
+  list-style: none;
+}
+
+.row::-webkit-details-marker,
+.row::marker {
+  display: none;
+  content: "";
+}
+
+.card {
+  padding: 0.6em 4px 1.1em;
+}
+
+/* the mark column doubles as the open/closed cue, so nothing extra is drawn */
+.district[open] > .row {
+  background: var(--hover);
 }
 
 .row:hover,

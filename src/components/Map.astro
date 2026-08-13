@@ -1,8 +1,8 @@
 ---
 import { loadDistricts } from "../lib/districts";
-import { continuationIndent, districtCells, summaryLines } from "../lib/format";
+import { summaryLines } from "../lib/format";
 import { freshness } from "../lib/freshness";
-import { TONE } from "../lib/status";
+import District from "./District.astro";
 
 const now = new Date();
 const { districts, health } = await loadDistricts();
@@ -41,26 +41,7 @@ const coldLine = [
 </pre>
 
 <div class="rows">
-  {
-    districts.map((d) => {
-      const c = districtCells(d);
-      return (
-        <button type="button" class="row" data-act="cd" data-id={d.id}>
-          <span class={TONE[d.status]}>{c.mark}</span>
-          {c.id}
-          <span class="dim host-col">{c.host}</span>
-          <span class={TONE[d.status]}>{c.reply}</span>
-          <span class="dim">
-            {c.stats}
-            {c.last}
-          </span>
-          {d.status === "alive" && d.what ? (
-            <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${d.what}`}</span>
-          ) : null}
-        </button>
-      );
-    })
-  }
+  {districts.map((d) => <District district={d} />)}
 </div>
 
 {sayCold && <pre class="prose"><span class="dim">{coldLine}</span></pre>}

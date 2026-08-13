@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { loadDistricts } from "../lib/districts";
-import { continuationIndent, districtRow, secondLineFor, summaryLines } from "../lib/format";
+import { continuationIndent, districtRow, pad, secondLineFor, summaryLines } from "../lib/format";
 
 // Same formatter as the HTML map, so the two renderings cannot disagree about
 // the same district. `curl zae.life` is served this by the edge middleware.
@@ -41,9 +41,17 @@ export const GET: APIRoute = async () => {
     // the same rule the page follows: this line asserts a count, so it may only
     // appear when the check that produced the count actually succeeded
     ...coldLines,
-    "  curl https://zae.life               this, plain text",
-    "  https://zae.life/districts.json    the merged record",
-    "  https://zae.life/health.json       the raw snapshot",
+    // padded rather than spaced by eye, so the column cannot drift when a line
+    // is added
+    ...(
+      [
+        ["curl https://zae.life", "this, plain text"],
+        ["bee@zae.life", "write"],
+        ["https://zae.life/districts.json", "the merged record"],
+        ["https://zae.life/health.json", "the raw snapshot"],
+        ["https://zae.life/history.json", "how long each has read that way"],
+      ] as Array<[string, string]>
+    ).map(([left, right]) => `  ${pad(left, 35)}${right}`),
     "",
   ].join("\n");
 

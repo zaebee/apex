@@ -17,6 +17,9 @@ const { title, description, current } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0d0c" />
     <!-- The RSS <link> returns with Task 10. Advertising a feed with nothing in
          it is a small false promise, and this site does not get to make those. -->
   </head>

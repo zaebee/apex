@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The site's one visual signature: the solid block cursor that never
+       blinks, in the phosphor green the map spends only on `alive`. It carries
+       its own ground so it holds on a light or a dark browser chrome. -->
+  <title>zae.life</title>
+  <rect width="32" height="32" rx="6" fill="#0b0d0c"/>
+  <rect x="11" y="7" width="10" height="18" fill="#8fbf72"/>
+</svg>

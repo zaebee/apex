@@ -124,13 +124,29 @@ Data producers, normally run by workflows rather than by hand:
 bun run scan       # git statistics, via a blobless clone
 bun run health     # probe every host, write data/health.json
 bun run history    # fold the snapshot into data/history.json
-bun run provenance <answer.md> <name>=<source.txt>
 ```
 
-That last one is a checker for quoted claims: it reports which quoted fragments
-appear in the files it was handed and settles nothing else. It came out of the
-experiments in `experiments/`, and its own blind spot is written at the top of
-`src/lib/provenance.ts`.
+`provenance` is a checker for quoted claims: it reports which quoted fragments
+appear in the files it was handed and settles nothing else. Run against this
+repository's own records — do the citations a witness made in phase 2 appear in
+what it actually said in phase 1?
+
+```sh
+bun run provenance experiments/03-trustworthy-agents/answers-phase-2.md \
+  said=experiments/03-trustworthy-agents/answers-phase-1.md
+```
+```
+searched: said
+
+  Anthropic фактически формулирует agent stack как четыре слоя: model → h…
+    appears in: said
+  An environment.
+    not found in: said
+```
+
+It came out of the experiments in `experiments/`, and its own blind spot is
+written at the top of `src/lib/provenance.ts`: it checks quotations, so it is
+silent wherever a witness declined to offer one.
 
 ### Stack
 

@@ -265,7 +265,7 @@ function observedGroup(
 ): EvidenceGroup | null {
   if (!d.host || health?.ok !== true) return null;
 
-  const entry = health.entries[d.host];
+  const entry = health.entries?.[d.host];
   if (!entry) return null;
 
   // A stamp in the future was not an observation. takeStats and takeRecord

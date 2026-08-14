@@ -306,10 +306,16 @@ export function evidenceGroups(
     ["why", d.why],
     ["learned", d.learned],
   ] as const) {
+    // One check, not two that can disagree: `??` treats "" as written while the
+    // flag treats it as unwritten, which rendered an empty line in the colour
+    // reserved for a missing one. `str()` in the loader nulls empty strings so
+    // this cannot arrive that way today — but the type permits it, and a
+    // District assembled anywhere else would hit it.
+    const written = Boolean(value);
     authored.push({
       label,
-      value: value ?? "‹ not written yet ›",
-      ...(value ? {} : { unwritten: true }),
+      value: written ? (value as string) : "‹ not written yet ›",
+      ...(written ? {} : { unwritten: true }),
     });
   }
   groups.push({ kind: "authored", source: "districts.toml", freshness: null, lines: authored });

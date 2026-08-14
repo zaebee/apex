@@ -129,6 +129,27 @@ async function livePing(result: HTMLElement, signal: AbortSignal) {
   }
 }
 
+/** `cd` and `evidence` both want a district on this page, and both answer the
+ *  same way when it is not here: off the map, hand it to the map's own anchor
+ *  rather than claim from a page that never listed it that the district does
+ *  not exist. Written once because it was written twice, which put dispatch
+ *  over the complexity a reader can hold. */
+function districtNode(id: string, selector: string, echo: string): HTMLElement | null {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (el) return el;
+
+  if (location.pathname !== "/") {
+    location.href = `/#${encodeURIComponent(id)}`;
+    return null;
+  }
+
+  emit(
+    `<pre class="prose"><span class="warn">  no district "${esc(id)}". try: ls</span></pre>`,
+    echo,
+  );
+  return null;
+}
+
 function dispatch(action: Action, echo: string) {
   switch (action.kind) {
     case "empty":
@@ -168,47 +189,28 @@ function dispatch(action: Action, echo: string) {
     // renderings of the same four groups is the drift this whole file exists to
     // prevent: these are literally the same nodes, so they cannot disagree.
     case "evidence": {
-      const block = document.querySelector<HTMLElement>(
-        `[data-evidence="${CSS.escape(action.id)}"]`,
-      );
-      if (!block) {
-        if (location.pathname !== "/") {
-          location.href = `/#${encodeURIComponent(action.id)}`;
-          return;
-        }
-        emit(
-          `<pre class="prose"><span class="warn">  no district "${esc(action.id)}". try: ls</span></pre>`,
-          echo,
-        );
-        return;
-      }
+      const block = districtNode(action.id, `[data-evidence="${CSS.escape(action.id)}"]`, echo);
+      if (!block) return;
 
       const copy = block.cloneNode(true) as HTMLElement;
-      // the hook goes with the original: two nodes answering to the same
+      // the hook stays with the original: two nodes answering to the same
       // data-evidence would make `evidence aura` twice copy a copy
-      copy.removeAttribute("data-evidence");
+      delete copy.dataset.evidence;
       emit("", echo).replaceChildren(copy);
       return;
     }
 
     case "cd": {
-      const summary = document.querySelector<HTMLElement>(
+      const summary = districtNode(
+        action.id,
         `summary[data-act="cd"][data-id="${CSS.escape(action.id)}"]`,
+        echo,
       );
-      const el = summary?.closest("details") ?? null;
-      if (!el) {
-        // off the map: let the map's own anchor handle it rather than claiming
-        // the district does not exist from a page that never listed it
-        if (location.pathname !== "/") {
-          location.href = `/#${encodeURIComponent(action.id)}`;
-          return;
-        }
-        emit(
-          `<pre class="prose"><span class="warn">  no district "${esc(action.id)}". try: ls</span></pre>`,
-          echo,
-        );
-        return;
-      }
+      // districtNode has already answered when the summary is missing. A summary
+      // outside a details cannot occur — the template authors one inside the
+      // other — so there is nothing left to report here.
+      const el = summary?.closest("details");
+      if (!el) return;
       // the same property a click toggles and a no-JS visitor toggles: one
       // thing to change, so the two paths cannot mean different things
       el.open = !el.open;

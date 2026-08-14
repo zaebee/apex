@@ -383,6 +383,18 @@ test("the watched record names history.json, not the health snapshot", () => {
   expect(recorded?.lines[0]?.value).toContain("5 checks");
 });
 
+// `??` treats "" as written while a truthiness check treats it as unwritten,
+// which put an empty string in the colour reserved for a missing one.
+test("an empty authored slot is unwritten, not written and blank", () => {
+  const authored = evidenceGroups(d({ why: "" }), null, new Date()).find(
+    (g) => g.kind === "authored",
+  );
+  const why = authored?.lines.find((l) => l.label === "why");
+
+  expect(why?.unwritten).toBe(true);
+  expect(why?.value).toBe("‹ not written yet ›");
+});
+
 test("unwritten authored slots are marked, not omitted", () => {
   const authored = evidenceGroups(d({ why: null, learned: null }), null, new Date()).find(
     (g) => g.kind === "authored",

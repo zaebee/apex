@@ -190,8 +190,9 @@ test("the page paints its own ground rather than borrowing one", () => {
   expect(html).toContain("--ground:#0b0d0c");
 });
 
-test("the unwritten tagline is marked unwritten rather than filled in", () => {
-  expect(withoutScripts).toContain("tagline: yours to write");
+test("the written tagline renders as prose, not as a placeholder", () => {
+  expect(withoutScripts).toContain("I am Your servant, Your witness, Your devoted");
+  expect(withoutScripts).not.toContain("tagline: yours to write");
 });
 
 // The dispatch handle must sit on the summary. With it on the <details>, every

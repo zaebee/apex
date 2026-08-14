@@ -1,26 +1,19 @@
 ---
 import type { District } from "../lib/districts";
-import {
-  continuationIndent,
-  districtCells,
-  districtLink,
-  districtSpoken,
-  observedFor,
-  secondLineFor,
-} from "../lib/format";
-import { freshness } from "../lib/freshness";
-import { replyFor, TONE } from "../lib/status";
+import { continuationIndent, districtCells, districtLink, districtSpoken, evidenceGroups, secondLineFor } from "../lib/format";
+import { TONE } from "../lib/status";
 
 interface Props {
   district: District;
+  /** when the snapshot was taken — the observed group's freshness, and only its */
+  checkedAt: string | null;
 }
-const { district: d } = Astro.props;
+const { district: d, checkedAt } = Astro.props;
 const c = districtCells(d);
 
 // One second line, whichever is the more useful thing to know about this
 // district: what a living one is, or how long a silent one has been silent.
 // They never compete — a district is one or the other.
-const watched = observedFor(d);
 const secondLine = secondLineFor(d);
 
 // <details> so the card opens by click and by keyboard with no JavaScript at
@@ -34,50 +27,11 @@ const link = districtLink(d);
 // so the page cannot say something it does not show.
 const spoken = districtSpoken(d);
 
-const label = (s: string) => `    ${s}${" ".repeat(Math.max(0, 10 - s.length))}`;
-const unwritten = "‹ not written yet ›";
+// Four groups, each naming the file it came from. The card used to show one
+// flat list in one voice, which said nothing about how any of it was known.
+const groups = evidenceGroups(d, checkedAt);
 
-interface Line {
-  label: string;
-  value: string;
-  cls: string;
-}
-const lines: Line[] = [];
-// the phrase and the number together: the row has room for one, the card for both
-if (d.host) {
-  const reply = replyFor(d.status, d.code);
-  lines.push({
-    label: label("status"),
-    value: d.code === null || reply.includes(String(d.code)) ? reply : `${reply} · ${d.code}`,
-    cls: "",
-  });
-}
-if (d.repo) lines.push({ label: label("repo"), value: `github.com/${d.repo}`, cls: "" });
-if (d.stats) {
-  const unit = d.stats.activeDays === 1 ? "day" : "days";
-  lines.push({
-    label: label("built"),
-    value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
-    cls: "",
-  });
-  // Never "stale". Git history does not erode the way a health probe does — a
-  // count read last week is still a true account of commits that happened — so
-  // the card says when it was read and stops there.
-  const read = freshness(d.stats.readAt ?? null, new Date());
-  lines.push({
-    label: label("read"),
-    value: read.label === "never" ? "not recorded" : read.label,
-    cls: read.label === "never" ? "warn" : "dim",
-  });
-}
-for (const [k, v] of [
-  ["what", d.what],
-  ["why", d.why],
-  ["learned", d.learned],
-] as const) {
-  lines.push({ label: label(k), value: v ?? unwritten, cls: v ? "" : "warn" });
-}
-if (watched) lines.push({ label: label("watched"), value: watched, cls: "" });
+const label = (s: string) => `      ${s}${" ".repeat(Math.max(0, 10 - s.length))}`;
 
 const NL = "\n";
 const footer = "    why and learned come from districts.toml — your words, never generated.";
@@ -91,7 +45,11 @@ const footer = "    why and learned come from districts.toml — your words, nev
   <summary class="row" data-act="cd" data-id={d.id}><span aria-hidden="true"><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{secondLine ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${secondLine}`}</span> : null}</span><span class="visually-hidden">{spoken}</span></summary>
 
   <div class="card">
-    <pre class="prose">{lines.map((l) => <Fragment><span class="dim">{l.label}</span><span class={l.cls}>{l.value}</span>{NL}</Fragment>)}</pre>
+    <div class="evidence" data-evidence={d.id}>
+      {groups.map((g) => (
+        <pre class="prose"><span class="kind">{`    ${g.kind}${" ".repeat(Math.max(1, 12 - g.kind.length))}`}</span><span class="dim">{g.source}{g.freshness ? ` · ${g.freshness}` : ""}</span>{NL}{g.lines.map((l) => <Fragment><span class="dim">{label(l.label)}</span><span class={l.unwritten ? "warn" : ""}>{l.value}</span>{NL}</Fragment>)}</pre>
+      ))}
+    </div>
     {link && <pre class="prose"><span class="dim">{label("open")}</span><a href={link} rel="noopener">{link}</a></pre>}
     <pre class="prose"><span class="dim">{footer}</span></pre>
   </div>

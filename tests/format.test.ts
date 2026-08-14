@@ -4,6 +4,7 @@ import {
   districtCells,
   districtRow,
   districtSpoken,
+  evidenceGroups,
   LEGEND,
   observedFor,
   pad,
@@ -301,4 +302,93 @@ test("the second line is spoken too, as its own sentence", () => {
     new Date("2026-08-14T12:00:00.000Z"),
   );
   expect(watched).toContain("no answer in 5 checks");
+});
+
+// The site keeps four kinds of knowledge apart internally and shows them to a
+// visitor as one flat list in one voice. Each group names the file it came from
+// and states freshness in its own vocabulary — or states none, where there is
+// none to state.
+test("each evidence group names its own file", () => {
+  const groups = evidenceGroups(
+    d(),
+    "2026-08-14T12:00:00.000Z",
+    new Date("2026-08-14T12:02:00.000Z"),
+  );
+  const byKind = Object.fromEntries(groups.map((g) => [g.kind, g.source]));
+
+  expect(byKind.observed).toBe("health.json");
+  expect(byKind.derived).toBe("stats.json");
+  expect(byKind.authored).toBe("districts.toml");
+});
+
+// A probe's age erodes what it claims; git history's does not; authored prose
+// has no freshness at all. Three headings over the same flat data would be the
+// decorative version of this.
+test("freshness is stated in each group's own vocabulary, or not at all", () => {
+  const now = new Date("2026-08-14T12:02:00.000Z");
+  const groups = evidenceGroups(
+    d({
+      stats: {
+        commits: 517,
+        activeDays: 41,
+        first: "2026-01-24",
+        last: "2026-08-13",
+        readAt: "2026-08-11T12:00:00.000Z",
+      },
+    }),
+    "2026-08-14T12:00:00.000Z",
+    now,
+  );
+  const g = Object.fromEntries(groups.map((x) => [x.kind, x.freshness]));
+
+  expect(g.observed).toBe("checked 2 min ago");
+  expect(g.derived).toBe("read 3d ago");
+  expect(g.authored).toBeNull();
+});
+
+// A heading over nothing claims something happened. A district with no host was
+// never probed; a district with no repository has no commits to count.
+test("a group with nothing in it is absent, not empty", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const kinds = (x: District) => evidenceGroups(x, null, now).map((g) => g.kind);
+
+  expect(kinds(d({ host: null, status: "offline" }))).not.toContain("observed");
+  expect(kinds(d({ stats: null }))).not.toContain("derived");
+  // authored always exists: the slots are the point, written or not
+  expect(kinds(d({ what: null, why: null, learned: null, repo: null }))).toContain("authored");
+
+  for (const g of evidenceGroups(d({ host: null, stats: null }), null, now)) {
+    expect(g.lines.length).toBeGreaterThan(0);
+  }
+});
+
+// It is folded from past probes and stored in its own file, so it is neither
+// the current observation nor a reading of git. Labelling it health.json would
+// be a false claim about provenance on a page about provenance.
+test("the watched record names history.json, not the health snapshot", () => {
+  const groups = evidenceGroups(
+    d({
+      status: "cold",
+      code: 502,
+      observed: { state: "cold", since: "2026-08-13T00:00:00.000Z", checks: 5, gaps: 0 },
+    }),
+    "2026-08-14T12:00:00.000Z",
+    new Date("2026-08-14T12:00:00.000Z"),
+  );
+  const recorded = groups.find((g) => g.kind === "recorded");
+
+  expect(recorded?.source).toBe("history.json");
+  // its span is inside the sentence it makes; it has no separate freshness
+  expect(recorded?.freshness).toBeNull();
+  expect(recorded?.lines[0]?.value).toContain("5 checks");
+});
+
+test("unwritten authored slots are marked, not omitted", () => {
+  const authored = evidenceGroups(d({ why: null, learned: null }), null, new Date()).find(
+    (g) => g.kind === "authored",
+  );
+  const why = authored?.lines.find((l) => l.label === "why");
+
+  expect(why).toBeDefined();
+  expect(why?.unwritten).toBe(true);
 });

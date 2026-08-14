@@ -215,6 +215,108 @@ export function districtSpoken(d: District, now: Date = new Date()): string {
   return second ? `${sentence} ${stop(second)}` : sentence;
 }
 
+export interface EvidenceLine {
+  label: string;
+  value: string;
+  /** an authored slot with nothing in it yet — a fact about the city, not a gap */
+  unwritten?: boolean;
+}
+
+export interface EvidenceGroup {
+  kind: "observed" | "recorded" | "derived" | "authored";
+  /** the file it came from, named so the claim can be checked rather than trusted */
+  source: string;
+  /** stated in this group's own vocabulary, or absent where there is none */
+  freshness: string | null;
+  lines: EvidenceLine[];
+}
+
+/** The card used to show one flat list in one voice: a 502 beside a commit
+ *  count beside a hand-written sentence. The site keeps these apart internally
+ *  and enforces it at the merge; this is that separation made visible.
+ *
+ *  Four groups, not the three the issue sketched. The watched record is folded
+ *  from past probes and kept in its own file, so filing it under health.json
+ *  would be a false claim about where it came from — on a page whose subject is
+ *  where things came from.
+ *
+ *  Freshness is the honesty test. A probe's age erodes what it claims, so it
+ *  says `checked`. Git history does not erode — a count read last week is still
+ *  a true account of commits that happened — so it says `read`. Authored prose
+ *  has no freshness at all and is given none. Three headings over the same flat
+ *  data would be the decorative version of this. */
+export function evidenceGroups(
+  d: District,
+  checkedAt: string | null,
+  now: Date = new Date(),
+): EvidenceGroup[] {
+  const groups: EvidenceGroup[] = [];
+
+  if (d.host) {
+    const reply = replyFor(d.status, d.code);
+    const seen = freshness(checkedAt, now);
+    groups.push({
+      kind: "observed",
+      source: "health.json",
+      freshness: seen.label === "never" ? null : `checked ${seen.label}`,
+      lines: [
+        { label: "host", value: d.host },
+        {
+          label: "status",
+          value: d.code === null || reply.includes(String(d.code)) ? reply : `${reply} · ${d.code}`,
+        },
+      ],
+    });
+  }
+
+  const watched = observedFor(d, now);
+  if (watched) {
+    groups.push({
+      kind: "recorded",
+      source: "history.json",
+      // the span it covers is inside the sentence itself; a second age above it
+      // would be an age of an age
+      freshness: null,
+      lines: [{ label: "watched", value: watched }],
+    });
+  }
+
+  if (d.stats) {
+    const unit = d.stats.activeDays === 1 ? "day" : "days";
+    const read = freshness(d.stats.readAt ?? null, now);
+    groups.push({
+      kind: "derived",
+      source: "stats.json",
+      freshness: read.label === "never" ? null : `read ${read.label}`,
+      lines: [
+        {
+          label: "built",
+          value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
+        },
+      ],
+    });
+  }
+
+  // Always present. The empty slots are the point: a district with nothing
+  // written about it is reporting that, not hiding it.
+  const authored: EvidenceLine[] = [];
+  if (d.repo) authored.push({ label: "repo", value: `github.com/${d.repo}` });
+  for (const [label, value] of [
+    ["what", d.what],
+    ["why", d.why],
+    ["learned", d.learned],
+  ] as const) {
+    authored.push({
+      label,
+      value: value ?? "‹ not written yet ›",
+      ...(value ? {} : { unwritten: true }),
+    });
+  }
+  groups.push({ kind: "authored", source: "districts.toml", freshness: null, lines: authored });
+
+  return groups;
+}
+
 export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {
   const c = districtCells(d, opts);
   return c.mark + c.id + c.host + c.reply + c.stats + c.last;

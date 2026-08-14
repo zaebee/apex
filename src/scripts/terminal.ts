@@ -52,6 +52,7 @@ const HELP = [
   "",
   "  ls              the map: every district, live status, real build stats",
   "  cd <district>   open one district",
+  "  evidence <d>    where each line came from: observed, recorded, derived, authored",
   "  log             list attestations",
   "  log <n>         open entry n",
   "  me              who, and how to reach me",
@@ -162,6 +163,33 @@ function dispatch(action: Action, echo: string) {
     case "me":
       location.href = "/me";
       return;
+
+    // The block is lifted out of the card rather than rebuilt here. Two
+    // renderings of the same four groups is the drift this whole file exists to
+    // prevent: these are literally the same nodes, so they cannot disagree.
+    case "evidence": {
+      const block = document.querySelector<HTMLElement>(
+        `[data-evidence="${CSS.escape(action.id)}"]`,
+      );
+      if (!block) {
+        if (location.pathname !== "/") {
+          location.href = `/#${encodeURIComponent(action.id)}`;
+          return;
+        }
+        emit(
+          `<pre class="prose"><span class="warn">  no district "${esc(action.id)}". try: ls</span></pre>`,
+          echo,
+        );
+        return;
+      }
+
+      const copy = block.cloneNode(true) as HTMLElement;
+      // the hook goes with the original: two nodes answering to the same
+      // data-evidence would make `evidence aura` twice copy a copy
+      copy.removeAttribute("data-evidence");
+      emit("", echo).replaceChildren(copy);
+      return;
+    }
 
     case "cd": {
       const summary = document.querySelector<HTMLElement>(

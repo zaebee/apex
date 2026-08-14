@@ -1,6 +1,7 @@
 export type Action =
   | { kind: "ls" }
   | { kind: "cd"; id: string }
+  | { kind: "evidence"; id: string }
   | { kind: "log" }
   | { kind: "logEntry"; n: number }
   | { kind: "me" }
@@ -45,9 +46,10 @@ export function parse(input: string): Action {
     return arg ? { kind: "unknown", input: line } : ({ kind: BARE_KIND[cmd] } as Action);
   }
 
-  if (cmd === "cd") {
+  if (cmd === "cd" || cmd === "evidence") {
     const id = arg.replace(/\/$/, "");
-    return id && !id.includes(" ") ? { kind: "cd", id } : { kind: "unknown", input: line };
+    if (!id || id.includes(" ")) return { kind: "unknown", input: line };
+    return cmd === "cd" ? { kind: "cd", id } : { kind: "evidence", id };
   }
 
   if (cmd === "log") {

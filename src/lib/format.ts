@@ -202,7 +202,8 @@ export function districtSpoken(d: District, now: Date = new Date()): string {
     const commits = `${d.stats.commits} commit${d.stats.commits === 1 ? "" : "s"}`;
     const days = `${d.stats.activeDays} active day${d.stats.activeDays === 1 ? "" : "s"}`;
     const last = spokenMonth(d.stats.last);
-    parts.push(`${commits} across ${days}${last ? `, last ${last}` : ""}`);
+    const when = last ? `, last ${last}` : "";
+    parts.push(`${commits} across ${days}${when}`);
   }
 
   // A second sentence, not a fourth clause: the row shows one line beneath the

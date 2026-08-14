@@ -70,6 +70,20 @@ export function actionFromKey(key: string): Action | null {
   return key === "Escape" || key === "Esc" ? { kind: "dismiss" } : null;
 }
 
+/** Whether Escape belongs to this page at this moment.
+ *
+ *  Taking it unconditionally pulled focus to the invisible prompt from wherever
+ *  it was, on every page — including /log and /me, which render no cards — and
+ *  called preventDefault on a key the browser and assistive software have their
+ *  own uses for. Acting only when a card is open, the narrow fix, leaves out
+ *  what the issue actually asked for: a reader whose focus sits on a closed row
+ *  also has no way back to the prompt except cycling Tab through everything
+ *  after it. Both count as being somewhere there is something to leave. */
+export function dismissApplies(active: Element | null, openCards: number): boolean {
+  if (openCards > 0) return true;
+  return active?.closest?.("summary") != null;
+}
+
 export function actionFromClick(el: HTMLElement): Action | null {
   const act = el.dataset.act;
   const id = el.dataset.id;

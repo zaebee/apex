@@ -1,4 +1,10 @@
-import { type Action, actionFromClick, actionFromKey, parse } from "../lib/commands";
+import {
+  type Action,
+  actionFromClick,
+  actionFromKey,
+  dismissApplies,
+  parse,
+} from "../lib/commands";
 
 const term = document.getElementById("term");
 const output = document.getElementById("output");
@@ -356,6 +362,9 @@ window.addEventListener("keydown", (e) => {
 
   const action = actionFromKey(e.key);
   if (action?.kind !== "dismiss") return;
+
+  const open = document.querySelectorAll<HTMLDetailsElement>("details.district[open]");
+  if (!dismissApplies(document.activeElement, open.length)) return;
 
   e.preventDefault();
   dispatch(action, "");

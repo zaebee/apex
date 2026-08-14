@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { type Action, actionFromClick, actionFromKey, parse } from "../src/lib/commands";
+import {
+  type Action,
+  actionFromClick,
+  actionFromKey,
+  dismissApplies,
+  parse,
+} from "../src/lib/commands";
 
 test("bare commands parse", () => {
   expect(parse("ls")).toEqual({ kind: "ls" });
@@ -137,4 +143,26 @@ test("no other key is a command on its own", () => {
   for (const key of ["Enter", "Tab", "a", " ", "ArrowUp", "Backspace"]) {
     expect(actionFromKey(key)).toBeNull();
   }
+});
+
+// Escape used to close cards and pull focus to the prompt from anywhere on any
+// page — including /log and /me, which render no cards at all. Two reviews
+// pointed at it. The narrow fix offered, "act only when a card is open", breaks
+// what the issue asked for: a reader whose focus is on a closed row also has no
+// way back except cycling Tab.
+test("escape applies when there is something to leave, and not otherwise", () => {
+  const summary = {
+    tagName: "SUMMARY",
+    closest: (s: string) => (s === "summary" ? summary : null),
+  };
+  const link = { tagName: "A", closest: () => null };
+
+  // a card is open — wherever focus is
+  expect(dismissApplies(null, 1)).toBe(true);
+  expect(dismissApplies(link as unknown as Element, 1)).toBe(true);
+  // nothing open, but focus is on a row: still a place to leave
+  expect(dismissApplies(summary as unknown as Element, 0)).toBe(true);
+  // nothing open and focus is elsewhere: the key is not ours
+  expect(dismissApplies(link as unknown as Element, 0)).toBe(false);
+  expect(dismissApplies(null, 0)).toBe(false);
 });

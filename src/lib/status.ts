@@ -101,7 +101,7 @@ export function resolveStatus(d: StatusInput, snapshot: HealthSnapshot | null): 
   // Anything that is not exactly `true` or exactly `false` was not observed.
   if (snapshot?.ok !== true) return "unknown";
 
-  const entry = snapshot.entries[d.host];
+  const entry = snapshot.entries?.[d.host];
 
   // A hostname that now sends the probe to a different host was not observed —
   // something else was, at that address. A lapsed domain landing on a

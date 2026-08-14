@@ -1,7 +1,7 @@
 import type { District } from "./districts";
 import { freshness } from "./freshness";
 import type { ObservedState } from "./history";
-import { type HealthSnapshot, MARK, replyFor, type Status } from "./status";
+import { type HealthEntry, type HealthSnapshot, MARK, replyFor, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
   s.length >= n ? s : s + " ".repeat(n - s.length);
@@ -48,8 +48,16 @@ const MONTHS = [
  *  correct its source. */
 function monthOf(iso: string): { year: string; name: string } | null {
   const m = /^(\d{4})-(\d{2})-\d{2}/.exec(iso);
-  const name = m ? MONTHS[Number.parseInt(m[2] as string, 10) - 1] : undefined;
-  return m && name ? { year: m[1] as string, name } : null;
+  if (!m) return null;
+
+  // destructured and checked rather than asserted: an `as` here would be a
+  // claim to know more than the types do, which is the habit this file spends
+  // its comments arguing against
+  const [, year, month] = m;
+  if (!year || !month) return null;
+
+  const name = MONTHS[Number.parseInt(month, 10) - 1];
+  return name ? { year, name } : null;
 }
 
 /** `2026-08-13` reads as `aug'26`. An em dash where there is no date, because a
@@ -213,6 +221,173 @@ export function districtSpoken(d: District, now: Date = new Date()): string {
   const second = secondLineFor(d, now);
   const sentence = `${parts.join(", ")}.`;
   return second ? `${sentence} ${stop(second)}` : sentence;
+}
+
+export interface EvidenceLine {
+  label: string;
+  value: string;
+  /** an authored slot with nothing in it yet — a fact about the city, not a gap */
+  unwritten?: boolean;
+}
+
+export interface EvidenceGroup {
+  kind: "observed" | "recorded" | "derived" | "authored";
+  /** the file it came from, named so the claim can be checked rather than trusted */
+  source: string;
+  /** stated in this group's own vocabulary, or absent where there is none */
+  freshness: string | null;
+  /** the stamp is missing rather than inapplicable — an absence worth flagging */
+  unrecorded?: boolean;
+  lines: EvidenceLine[];
+}
+
+/** What the probe alone saw, with no authored visibility folded in — which is
+ *  the difference between this and `resolveStatus`. Off-site is `unknown`
+ *  because something answered and it was not this district: an observation was
+ *  made, and it was not of the thing being asked about. */
+function statusOf(entry: HealthEntry): Status {
+  if (entry.offSite === true) return "unknown";
+  return entry.ok === true ? "alive" : "cold";
+}
+
+/** What the probe found, and only that.
+ *
+ *  Gated on the snapshot having observed *this host*, not merely on the district
+ *  having one. A snapshot whose `ok` is false carries no testimony by its own
+ *  definition, and an entry missing from a good snapshot is a host that run
+ *  never reached — a district added to the allowlist between two health runs is
+ *  exactly that. Either way the heading said `observed`, the byline said
+ *  `health.json`, and the freshness said `checked 2 min ago` over a status that
+ *  means nobody looked. A heading over nothing claims a check happened.
+ *
+ *  The reply is computed from the entry rather than from `d.status`, because
+ *  `resolveStatus` returns `private` from authored visibility before it ever
+ *  consults the snapshot. Reporting that here would put districts.toml's
+ *  testimony under another file's byline, which is the one thing this grouping
+ *  exists to prevent. The row still shows the resolved status; this shows what
+ *  came back, and they are allowed to differ. */
+function observedGroup(
+  d: District,
+  health: HealthSnapshot | null,
+  now: Date,
+): EvidenceGroup | null {
+  if (!d.host || health?.ok !== true) return null;
+
+  const entry = health.entries?.[d.host];
+  if (!entry) return null;
+
+  // A stamp in the future was not an observation. takeStats and takeRecord
+  // already refuse one; freshness clamps the age to zero, so a year ahead read
+  // as "just now" until this said otherwise.
+  const stamped = Date.parse(health.checkedAt);
+  if (Number.isNaN(stamped) || stamped > now.getTime()) return null;
+
+  const reply = replyFor(statusOf(entry), entry.code);
+  // the phrase and the number together: the row has room for one, the card for
+  // both, and the number is the observation the phrase is a reading of
+  const answered =
+    entry.code === null || reply.includes(String(entry.code)) ? reply : `${reply} · ${entry.code}`;
+
+  const lines: EvidenceLine[] = [
+    { label: "host", value: d.host },
+    { label: "answered", value: answered },
+  ];
+  // what was seen, kept beside what was concluded from it
+  if (entry.finalUrl) lines.push({ label: "landed", value: entry.finalUrl });
+
+  return {
+    kind: "observed",
+    source: "health.json",
+    freshness: `checked ${freshness(health.checkedAt, now).label}`,
+    lines,
+  };
+}
+
+/** Folded from past probes and kept in its own file, so neither the current
+ *  observation nor a reading of git. The span it covers is inside the sentence
+ *  it makes; an age above it would be an age of an age. */
+function recordedGroup(d: District, now: Date): EvidenceGroup | null {
+  const watched = observedFor(d, now);
+  if (!watched) return null;
+
+  return {
+    kind: "recorded",
+    source: "history.json",
+    freshness: null,
+    lines: [{ label: "watched", value: watched }],
+  };
+}
+
+/** Git history does not erode: a count read last week is still a true account of
+ *  commits that happened, so this says `read` where the probe says `checked`. A
+ *  missing stamp is flagged rather than left silent — three kinds of silence in
+ *  one card are indistinguishable, and this one means the producer failed to say
+ *  when it looked. */
+function derivedGroup(d: District, now: Date): EvidenceGroup | null {
+  if (!d.stats) return null;
+
+  const unit = d.stats.activeDays === 1 ? "day" : "days";
+  const read = freshness(d.stats.readAt ?? null, now);
+  const unrecorded = read.label === "never";
+
+  return {
+    kind: "derived",
+    source: "stats.json",
+    freshness: unrecorded ? "read · not recorded" : `read ${read.label}`,
+    ...(unrecorded ? { unrecorded: true } : {}),
+    lines: [
+      {
+        label: "built",
+        value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
+      },
+    ],
+  };
+}
+
+/** Always present, and given no freshness: prose does not go stale. The empty
+ *  slots are the point — a district with nothing written about it is reporting
+ *  that, not hiding it. */
+function authoredGroup(d: District): EvidenceGroup {
+  const lines: EvidenceLine[] = [];
+  if (d.repo) lines.push({ label: "repo", value: `github.com/${d.repo}` });
+
+  for (const [label, value] of [
+    ["what", d.what],
+    ["why", d.why],
+    ["learned", d.learned],
+  ] as const) {
+    // One check, not two that can disagree: `??` treats "" as written while the
+    // flag treats it as unwritten, which put an empty string in the colour
+    // reserved for a missing one.
+    lines.push({
+      label,
+      value: value || "‹ not written yet ›",
+      ...(value ? {} : { unwritten: true }),
+    });
+  }
+
+  return { kind: "authored", source: "districts.toml", freshness: null, lines };
+}
+
+/** The card used to show one flat list in one voice: a 502 beside a commit count
+ *  beside a hand-written sentence. The site keeps these apart internally and
+ *  enforces it at the merge; this is that separation made visible.
+ *
+ *  Four groups, not the three the issue sketched. The watched record is folded
+ *  from past probes and kept in its own file, so filing it under health.json
+ *  would be a false claim about where it came from — on a page whose subject is
+ *  where things came from. */
+export function evidenceGroups(
+  d: District,
+  health: HealthSnapshot | null,
+  now: Date = new Date(),
+): EvidenceGroup[] {
+  return [
+    observedGroup(d, health, now),
+    recordedGroup(d, now),
+    derivedGroup(d, now),
+    authoredGroup(d),
+  ].filter((g): g is EvidenceGroup => g !== null);
 }
 
 export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {

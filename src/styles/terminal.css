@@ -66,6 +66,15 @@ pre {
   color: var(--dim);
 }
 
+/* The group name is the one thing in the card that is not evidence but a claim
+   about evidence, so it reads at full weight while the file it names stays dim.
+   No colour of its own: --alive and --warn already mean specific things here,
+   and spending one of them on a heading would make the heading look like a
+   status. */
+.kind {
+  color: var(--fg);
+}
+
 .alive {
   color: var(--alive);
 }

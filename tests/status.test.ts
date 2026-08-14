@@ -145,3 +145,14 @@ test("statuses that were never probed never quote a code", () => {
     expect(replyFor(s, 200)).not.toContain("200");
   }
 });
+
+// health.json is machine-written and read with a bare JSON.parse cast. A file
+// truncated to a valid object with no entries used to throw here, which takes
+// the whole build down rather than rendering one district wrongly. The stated
+// policy for an unreadable snapshot is that absence of observation resolves to
+// unknown; a parseable one missing its entries is the same absence.
+test("a snapshot with no entries at all is absence of observation, not a crash", () => {
+  const broken = { ok: true, checkedAt: "2026-08-14T12:00:00.000Z" } as unknown as HealthSnapshot;
+
+  expect(resolveStatus({ host: "aura.zae.life", visibility: "public" }, broken)).toBe("unknown");
+});

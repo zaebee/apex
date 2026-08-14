@@ -166,3 +166,12 @@ test("escape applies when there is something to leave, and not otherwise", () =>
   expect(dismissApplies(link as unknown as Element, 0)).toBe(false);
   expect(dismissApplies(null, 0)).toBe(false);
 });
+
+test("evidence takes a district and nothing else", () => {
+  expect(parse("evidence aura")).toEqual({ kind: "evidence", id: "aura" });
+  expect(parse("evidence aura/")).toEqual({ kind: "evidence", id: "aura" });
+  // no argument is not "show me something" — a terminal that picks for you is
+  // telling the visitor something it does not know
+  expect(parse("evidence")).toEqual({ kind: "unknown", input: "evidence" });
+  expect(parse("evidence a b")).toEqual({ kind: "unknown", input: "evidence a b" });
+});

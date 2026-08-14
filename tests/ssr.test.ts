@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { loadDistricts } from "../src/lib/districts";
-import { districtRow, districtSpoken } from "../src/lib/format";
+import { districtRow, districtSpoken, evidenceGroups } from "../src/lib/format";
 
 /** Astro emits static output to dist/ with no server routes and to dist/client/
  *  once one exists (/api/ping). Resolved rather than hardcoded so adding or
@@ -236,4 +236,34 @@ test("the hidden sentence is clipped, not removed from the accessibility tree", 
   expect(rule).toContain("clip-path");
   expect(rule).not.toContain("display:none");
   expect(rule).not.toContain("visibility:hidden");
+});
+
+// The card was regrouped from one flat list into four sourced groups. Every
+// value that was in the list has to still be in the card: a reorganisation that
+// quietly drops a field would leave the page saying less while looking like it
+// says more.
+test("the regrouped card still carries every value, and names every source", async () => {
+  const { districts, health } = await loadDistricts();
+  expect(districts.length).toBeGreaterThan(0);
+
+  for (const d of districts) {
+    const card = renderedCard(withoutScripts, d.id);
+    const groups = evidenceGroups(d, health);
+
+    for (const g of groups) {
+      expect(card).toContain(g.kind);
+      expect(card).toContain(g.source);
+      // the vocabulary, not the age: this test ran after the build and failed
+      // whenever `readAt` crossed a label boundary between the two, which is a
+      // 60-second window at the "just now" end
+      if (g.freshness) expect(card).toContain(g.freshness.split(" ")[0] as string);
+      for (const line of g.lines) expect(card).toContain(line.value);
+    }
+
+    // and no heading appears for a group this district does not have
+    for (const absent of ["observed", "recorded", "derived", "authored"]) {
+      if (groups.some((g) => g.kind === absent)) continue;
+      expect(card).not.toContain(`${absent}    `);
+    }
+  }
 });

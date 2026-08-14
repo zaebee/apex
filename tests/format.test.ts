@@ -4,6 +4,7 @@ import {
   districtCells,
   districtRow,
   districtSpoken,
+  evidenceGroups,
   LEGEND,
   observedFor,
   pad,
@@ -301,4 +302,244 @@ test("the second line is spoken too, as its own sentence", () => {
     new Date("2026-08-14T12:00:00.000Z"),
   );
   expect(watched).toContain("no answer in 5 checks");
+});
+
+// The site keeps four kinds of knowledge apart internally and shows them to a
+// visitor as one flat list in one voice. Each group names the file it came from
+// and states freshness in its own vocabulary — or states none, where there is
+// none to state.
+/** A snapshot that genuinely observed aura, so the observed group has grounds. */
+const sawAura = (checkedAt: string, over: Partial<HealthSnapshot> = {}): HealthSnapshot => ({
+  ok: true,
+  checkedAt,
+  entries: {
+    "aura.zae.life": {
+      host: "aura.zae.life",
+      ok: false,
+      code: 502,
+      finalUrl: null,
+      offSite: false,
+    },
+  },
+  ...over,
+});
+
+// The heading says observed and the byline says health.json. Both are claims,
+// and neither was gated on anything having been observed: a snapshot whose own
+// doc says it "carries no testimony" still produced `checked 2 min ago` over a
+// status that means nobody looked.
+test("the observed group appears only when the snapshot observed this host", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const at = "2026-08-14T11:58:00.000Z";
+  const kinds = (h: HealthSnapshot | null) => evidenceGroups(d(), h, now).map((g) => g.kind);
+
+  // the check ran and saw nothing
+  expect(kinds({ ok: false, checkedAt: at, entries: {} })).not.toContain("observed");
+  // and the harder case: the control host failed, so the run carries no
+  // testimony, but some districts did answer and left entries behind. An
+  // entries-only gate passes this; only the ok gate refuses it.
+  expect(
+    kinds({
+      ok: false,
+      checkedAt: at,
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: true,
+          code: 200,
+          finalUrl: null,
+          offSite: false,
+        },
+      },
+    }),
+  ).not.toContain("observed");
+  // the check worked but never reached this host
+  expect(kinds({ ok: true, checkedAt: at, entries: {} })).not.toContain("observed");
+  // there is no snapshot to cite
+  expect(kinds(null)).not.toContain("observed");
+  // and when it was really observed, the group is there
+  expect(kinds(sawAura(at))).toContain("observed");
+});
+
+// resolveStatus returns "private" from authored visibility before it consults
+// the snapshot. Filing that under health.json puts districts.toml's testimony
+// under another file's byline — on the page built to keep them apart.
+test("the observed group reports the probe, not the status the site resolved", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const observed = evidenceGroups(
+    d({ status: "private", code: 403 }),
+    sawAura("2026-08-14T11:58:00.000Z", {
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: false,
+          code: 403,
+          finalUrl: null,
+          offSite: false,
+        },
+      },
+    }),
+    now,
+  ).find((g) => g.kind === "observed");
+
+  const values = observed?.lines.map((l) => l.value).join(" ") ?? "";
+  expect(values).not.toContain("private");
+  // the same word the row uses for that code, from the entry rather than the
+  // status the site resolved
+  expect(values).toContain("forbidden");
+  // the number is the observation the phrase is a reading of; both are kept
+  expect(values).toContain("403");
+});
+
+// The codebase rejects a future readAt and a future since, saying a stamp in
+// the future was not an observation. checkedAt was read unvalidated, and
+// freshness clamps the age to zero, so a year ahead read as "just now".
+// A lapsed domain landing on a registrar page was observed — something
+// answered — but it was not this district. `probe` forces ok false there, so
+// without the off-site branch the group reports it as a district that did not
+// answer, which is a different and more confident claim than the truth.
+test("a probe that landed elsewhere is unknown, and says where it landed", () => {
+  const observed = evidenceGroups(
+    d(),
+    sawAura("2026-08-14T11:58:00.000Z", {
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: false,
+          code: 200,
+          finalUrl: "https://sedoparking.com/aura.zae.life",
+          offSite: true,
+        },
+      },
+    }),
+    new Date("2026-08-14T12:00:00.000Z"),
+  ).find((g) => g.kind === "observed");
+
+  // both halves: the district's status is unknown, and 200 is what came back.
+  // Reporting only the code would claim the district answered it.
+  expect(observed?.lines.find((l) => l.label === "answered")?.value).toBe("unknown · 200");
+  // what was seen, beside what was concluded from it
+  expect(observed?.lines.find((l) => l.label === "landed")?.value).toBe(
+    "https://sedoparking.com/aura.zae.life",
+  );
+});
+
+test("a checkedAt in the future is not treated as an observation", () => {
+  const groups = evidenceGroups(
+    d(),
+    sawAura("2027-08-14T12:00:00.000Z"),
+    new Date("2026-08-14T12:00:00.000Z"),
+  );
+  expect(groups.map((g) => g.kind)).not.toContain("observed");
+});
+
+// A missing stamp used to render `read  not recorded` in amber. Turning it into
+// a plain absent freshness made it indistinguishable from the two silences that
+// are deliberate.
+test("a missing read stamp is flagged, not silently silent", () => {
+  const derived = evidenceGroups(
+    d({ stats: { commits: 5, activeDays: 2, first: "2026-01-01", last: "2026-08-13" } }),
+    null,
+    new Date("2026-08-14T12:00:00.000Z"),
+  ).find((g) => g.kind === "derived");
+
+  expect(derived?.freshness).toBe("read · not recorded");
+  expect(derived?.unrecorded).toBe(true);
+});
+
+test("each evidence group names its own file", () => {
+  const groups = evidenceGroups(
+    d(),
+    sawAura("2026-08-14T12:00:00.000Z"),
+    new Date("2026-08-14T12:02:00.000Z"),
+  );
+  const byKind = Object.fromEntries(groups.map((g) => [g.kind, g.source]));
+
+  expect(byKind.observed).toBe("health.json");
+  expect(byKind.derived).toBe("stats.json");
+  expect(byKind.authored).toBe("districts.toml");
+});
+
+// A probe's age erodes what it claims; git history's does not; authored prose
+// has no freshness at all. Three headings over the same flat data would be the
+// decorative version of this.
+test("freshness is stated in each group's own vocabulary, or not at all", () => {
+  const now = new Date("2026-08-14T12:02:00.000Z");
+  const groups = evidenceGroups(
+    d({
+      stats: {
+        commits: 517,
+        activeDays: 41,
+        first: "2026-01-24",
+        last: "2026-08-13",
+        readAt: "2026-08-11T12:00:00.000Z",
+      },
+    }),
+    sawAura("2026-08-14T12:00:00.000Z"),
+    now,
+  );
+  const g = Object.fromEntries(groups.map((x) => [x.kind, x.freshness]));
+
+  expect(g.observed).toBe("checked 2 min ago");
+  expect(g.derived).toBe("read 3d ago");
+  expect(g.authored).toBeNull();
+});
+
+// A heading over nothing claims something happened. A district with no host was
+// never probed; a district with no repository has no commits to count.
+test("a group with nothing in it is absent, not empty", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const kinds = (x: District) => evidenceGroups(x, null, now).map((g) => g.kind);
+
+  expect(kinds(d({ host: null, status: "offline" }))).not.toContain("observed");
+  expect(kinds(d({ stats: null }))).not.toContain("derived");
+  // authored always exists: the slots are the point, written or not
+  expect(kinds(d({ what: null, why: null, learned: null, repo: null }))).toContain("authored");
+
+  for (const g of evidenceGroups(d({ host: null, stats: null }), null, now)) {
+    expect(g.lines.length).toBeGreaterThan(0);
+  }
+});
+
+// It is folded from past probes and stored in its own file, so it is neither
+// the current observation nor a reading of git. Labelling it health.json would
+// be a false claim about provenance on a page about provenance.
+test("the watched record names history.json, not the health snapshot", () => {
+  const groups = evidenceGroups(
+    d({
+      status: "cold",
+      code: 502,
+      observed: { state: "cold", since: "2026-08-13T00:00:00.000Z", checks: 5, gaps: 0 },
+    }),
+    sawAura("2026-08-14T12:00:00.000Z"),
+    new Date("2026-08-14T12:00:00.000Z"),
+  );
+  const recorded = groups.find((g) => g.kind === "recorded");
+
+  expect(recorded?.source).toBe("history.json");
+  // its span is inside the sentence it makes; it has no separate freshness
+  expect(recorded?.freshness).toBeNull();
+  expect(recorded?.lines[0]?.value).toContain("5 checks");
+});
+
+// `??` treats "" as written while a truthiness check treats it as unwritten,
+// which put an empty string in the colour reserved for a missing one.
+test("an empty authored slot is unwritten, not written and blank", () => {
+  const authored = evidenceGroups(d({ why: "" }), null, new Date()).find(
+    (g) => g.kind === "authored",
+  );
+  const why = authored?.lines.find((l) => l.label === "why");
+
+  expect(why?.unwritten).toBe(true);
+  expect(why?.value).toBe("‹ not written yet ›");
+});
+
+test("unwritten authored slots are marked, not omitted", () => {
+  const authored = evidenceGroups(d({ why: null, learned: null }), null, new Date()).find(
+    (g) => g.kind === "authored",
+  );
+  const why = authored?.lines.find((l) => l.label === "why");
+
+  expect(why).toBeDefined();
+  expect(why?.unwritten).toBe(true);
 });

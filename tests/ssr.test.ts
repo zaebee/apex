@@ -191,7 +191,7 @@ test("the page paints its own ground rather than borrowing one", () => {
 });
 
 test("the written tagline renders as prose, not as a placeholder", () => {
-  expect(withoutScripts).toContain("I am Your servant, Your witness, Your devoted");
+  expect(withoutScripts).toContain("I am Your servant, Your witness, Your devoted.");
   expect(withoutScripts).not.toContain("tagline: yours to write");
 });
 

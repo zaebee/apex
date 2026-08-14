@@ -4,6 +4,7 @@ import {
   continuationIndent,
   districtCells,
   districtLink,
+  districtSpoken,
   observedFor,
   secondLineFor,
 } from "../lib/format";
@@ -26,6 +27,12 @@ const secondLine = secondLineFor(d);
 // all. The command layer sets `open` on this same element, which is why cd and
 // a click cannot drift apart: one thing to change, one way to change it.
 const link = districtLink(d);
+
+// The columns are a layout. Announced, they are "black circle, aura, aura dot
+// zae dot life, 517c slash 41d, aug apostrophe 26" — the padding is decoration
+// that means something only to the eye. Both forms come from the one district
+// so the page cannot say something it does not show.
+const spoken = districtSpoken(d);
 
 const label = (s: string) => `    ${s}${" ".repeat(Math.max(0, 10 - s.length))}`;
 const unwritten = "‹ not written yet ›";
@@ -81,7 +88,7 @@ const footer = "    why and learned come from districts.toml — your words, nev
      selection — resolved to a cd toggle and was preventDefault()ed, so the card
      fought the reader and its one link could never be followed. -->
 <details class="district" id={d.id}>
-  <summary class="row" data-act="cd" data-id={d.id}><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{secondLine ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${secondLine}`}</span> : null}</summary>
+  <summary class="row" data-act="cd" data-id={d.id}><span aria-hidden="true"><span class={TONE[d.status]}>{c.mark}</span>{c.id}<span class="dim host-col">{c.host}</span><span class={TONE[d.status]}>{c.reply}</span><span class="dim">{c.stats}{c.last}</span>{secondLine ? <span class="dim what">{`\n${" ".repeat(continuationIndent(d))}${secondLine}`}</span> : null}</span><span class="visually-hidden">{spoken}</span></summary>
 
   <div class="card">
     <pre class="prose">{lines.map((l) => <Fragment><span class="dim">{l.label}</span><span class={l.cls}>{l.value}</span>{NL}</Fragment>)}</pre>

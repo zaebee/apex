@@ -1,14 +1,16 @@
 ---
 import type { District } from "../lib/districts";
 import { continuationIndent, districtCells, districtLink, districtSpoken, evidenceGroups, secondLineFor } from "../lib/format";
-import { TONE } from "../lib/status";
+import { type HealthSnapshot, TONE } from "../lib/status";
 
 interface Props {
   district: District;
-  /** when the snapshot was taken — the observed group's freshness, and only its */
-  checkedAt: string | null;
+  /** The whole snapshot, not its timestamp. A timestamp cannot say whether the
+   *  check succeeded or whether it reached this host, and the observed group
+   *  must not claim an observation on either. */
+  health: HealthSnapshot | null;
 }
-const { district: d, checkedAt } = Astro.props;
+const { district: d, health } = Astro.props;
 const c = districtCells(d);
 
 // One second line, whichever is the more useful thing to know about this
@@ -29,12 +31,11 @@ const spoken = districtSpoken(d);
 
 // Four groups, each naming the file it came from. The card used to show one
 // flat list in one voice, which said nothing about how any of it was known.
-const groups = evidenceGroups(d, checkedAt);
+const groups = evidenceGroups(d, health);
 
 const label = (s: string) => `      ${s}${" ".repeat(Math.max(0, 10 - s.length))}`;
 
 const NL = "\n";
-const footer = "    why and learned come from districts.toml — your words, never generated.";
 ---
 
 <!-- data-act sits on the summary, not the details: with it on the details, every
@@ -47,10 +48,9 @@ const footer = "    why and learned come from districts.toml — your words, nev
   <div class="card">
     <div class="evidence" data-evidence={d.id}>
       {groups.map((g) => (
-        <pre class="prose"><span class="kind">{`    ${g.kind}${" ".repeat(Math.max(1, 12 - g.kind.length))}`}</span><span class="dim">{g.source}{g.freshness ? ` · ${g.freshness}` : ""}</span>{NL}{g.lines.map((l) => <Fragment><span class="dim">{label(l.label)}</span><span class={l.unwritten ? "warn" : ""}>{l.value}</span>{NL}</Fragment>)}</pre>
+        <pre class="prose"><span class="kind">{`    ${g.kind}${" ".repeat(Math.max(1, 12 - g.kind.length))}`}</span><span class={g.unrecorded ? "warn" : "dim"}>{g.source}{g.freshness ? ` · ${g.freshness}` : ""}</span>{NL}{g.lines.map((l) => <Fragment><span class="dim">{label(l.label)}</span><span class={l.unwritten ? "warn" : ""}>{l.value}</span>{NL}</Fragment>)}</pre>
       ))}
     </div>
-    {link && <pre class="prose"><span class="dim">{label("open")}</span><a href={link} rel="noopener">{link}</a></pre>}
-    <pre class="prose"><span class="dim">{footer}</span></pre>
+    {link && <pre class="prose"><span class="dim">{"    open        "}</span><a href={link} rel="noopener">{link}</a></pre>}
   </div>
 </details>

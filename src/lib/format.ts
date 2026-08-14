@@ -228,99 +228,150 @@ export interface EvidenceGroup {
   source: string;
   /** stated in this group's own vocabulary, or absent where there is none */
   freshness: string | null;
+  /** the stamp is missing rather than inapplicable — an absence worth flagging */
+  unrecorded?: boolean;
   lines: EvidenceLine[];
 }
 
-/** The card used to show one flat list in one voice: a 502 beside a commit
- *  count beside a hand-written sentence. The site keeps these apart internally
- *  and enforces it at the merge; this is that separation made visible.
+/** What the probe found, and only that.
  *
- *  Four groups, not the three the issue sketched. The watched record is folded
- *  from past probes and kept in its own file, so filing it under health.json
- *  would be a false claim about where it came from — on a page whose subject is
- *  where things came from.
+ *  Gated on the snapshot having observed *this host*, not merely on the district
+ *  having one. A snapshot whose `ok` is false carries no testimony by its own
+ *  definition, and an entry missing from a good snapshot is a host that run
+ *  never reached — a district added to the allowlist between two health runs is
+ *  exactly that. Either way the heading said `observed`, the byline said
+ *  `health.json`, and the freshness said `checked 2 min ago` over a status that
+ *  means nobody looked. A heading over nothing claims a check happened.
  *
- *  Freshness is the honesty test. A probe's age erodes what it claims, so it
- *  says `checked`. Git history does not erode — a count read last week is still
- *  a true account of commits that happened — so it says `read`. Authored prose
- *  has no freshness at all and is given none. Three headings over the same flat
- *  data would be the decorative version of this. */
-export function evidenceGroups(
+ *  The reply is computed from the entry rather than from `d.status`, because
+ *  `resolveStatus` returns `private` from authored visibility before it ever
+ *  consults the snapshot. Reporting that here would put districts.toml's
+ *  testimony under another file's byline, which is the one thing this grouping
+ *  exists to prevent. The row still shows the resolved status; this shows what
+ *  came back, and they are allowed to differ. */
+function observedGroup(
   d: District,
-  checkedAt: string | null,
-  now: Date = new Date(),
-): EvidenceGroup[] {
-  const groups: EvidenceGroup[] = [];
+  health: HealthSnapshot | null,
+  now: Date,
+): EvidenceGroup | null {
+  if (!d.host || health?.ok !== true) return null;
 
-  if (d.host) {
-    const reply = replyFor(d.status, d.code);
-    const seen = freshness(checkedAt, now);
-    groups.push({
-      kind: "observed",
-      source: "health.json",
-      freshness: seen.label === "never" ? null : `checked ${seen.label}`,
-      lines: [
-        { label: "host", value: d.host },
-        {
-          label: "status",
-          value: d.code === null || reply.includes(String(d.code)) ? reply : `${reply} · ${d.code}`,
-        },
-      ],
-    });
-  }
+  const entry = health.entries[d.host];
+  if (!entry) return null;
 
+  // A stamp in the future was not an observation. takeStats and takeRecord
+  // already refuse one; freshness clamps the age to zero, so a year ahead read
+  // as "just now" until this said otherwise.
+  const stamped = Date.parse(health.checkedAt);
+  if (Number.isNaN(stamped) || stamped > now.getTime()) return null;
+
+  const seen: Status = entry.offSite === true ? "unknown" : entry.ok === true ? "alive" : "cold";
+  const reply = replyFor(seen, entry.code);
+  // the phrase and the number together: the row has room for one, the card for
+  // both, and the number is the observation the phrase is a reading of
+  const answered =
+    entry.code === null || reply.includes(String(entry.code)) ? reply : `${reply} · ${entry.code}`;
+
+  const lines: EvidenceLine[] = [
+    { label: "host", value: d.host },
+    { label: "answered", value: answered },
+  ];
+  // what was seen, kept beside what was concluded from it
+  if (entry.finalUrl) lines.push({ label: "landed", value: entry.finalUrl });
+
+  return {
+    kind: "observed",
+    source: "health.json",
+    freshness: `checked ${freshness(health.checkedAt, now).label}`,
+    lines,
+  };
+}
+
+/** Folded from past probes and kept in its own file, so neither the current
+ *  observation nor a reading of git. The span it covers is inside the sentence
+ *  it makes; an age above it would be an age of an age. */
+function recordedGroup(d: District, now: Date): EvidenceGroup | null {
   const watched = observedFor(d, now);
-  if (watched) {
-    groups.push({
-      kind: "recorded",
-      source: "history.json",
-      // the span it covers is inside the sentence itself; a second age above it
-      // would be an age of an age
-      freshness: null,
-      lines: [{ label: "watched", value: watched }],
-    });
-  }
+  if (!watched) return null;
 
-  if (d.stats) {
-    const unit = d.stats.activeDays === 1 ? "day" : "days";
-    const read = freshness(d.stats.readAt ?? null, now);
-    groups.push({
-      kind: "derived",
-      source: "stats.json",
-      freshness: read.label === "never" ? null : `read ${read.label}`,
-      lines: [
-        {
-          label: "built",
-          value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
-        },
-      ],
-    });
-  }
+  return {
+    kind: "recorded",
+    source: "history.json",
+    freshness: null,
+    lines: [{ label: "watched", value: watched }],
+  };
+}
 
-  // Always present. The empty slots are the point: a district with nothing
-  // written about it is reporting that, not hiding it.
-  const authored: EvidenceLine[] = [];
-  if (d.repo) authored.push({ label: "repo", value: `github.com/${d.repo}` });
+/** Git history does not erode: a count read last week is still a true account of
+ *  commits that happened, so this says `read` where the probe says `checked`. A
+ *  missing stamp is flagged rather than left silent — three kinds of silence in
+ *  one card are indistinguishable, and this one means the producer failed to say
+ *  when it looked. */
+function derivedGroup(d: District, now: Date): EvidenceGroup | null {
+  if (!d.stats) return null;
+
+  const unit = d.stats.activeDays === 1 ? "day" : "days";
+  const read = freshness(d.stats.readAt ?? null, now);
+  const unrecorded = read.label === "never";
+
+  return {
+    kind: "derived",
+    source: "stats.json",
+    freshness: unrecorded ? "read · not recorded" : `read ${read.label}`,
+    ...(unrecorded ? { unrecorded: true } : {}),
+    lines: [
+      {
+        label: "built",
+        value: `${d.stats.commits} commits across ${d.stats.activeDays} active ${unit}, last ${d.stats.last}`,
+      },
+    ],
+  };
+}
+
+/** Always present, and given no freshness: prose does not go stale. The empty
+ *  slots are the point — a district with nothing written about it is reporting
+ *  that, not hiding it. */
+function authoredGroup(d: District): EvidenceGroup {
+  const lines: EvidenceLine[] = [];
+  if (d.repo) lines.push({ label: "repo", value: `github.com/${d.repo}` });
+
   for (const [label, value] of [
     ["what", d.what],
     ["why", d.why],
     ["learned", d.learned],
   ] as const) {
     // One check, not two that can disagree: `??` treats "" as written while the
-    // flag treats it as unwritten, which rendered an empty line in the colour
-    // reserved for a missing one. `str()` in the loader nulls empty strings so
-    // this cannot arrive that way today — but the type permits it, and a
-    // District assembled anywhere else would hit it.
-    const written = Boolean(value);
-    authored.push({
+    // flag treats it as unwritten, which put an empty string in the colour
+    // reserved for a missing one.
+    lines.push({
       label,
-      value: written ? (value as string) : "‹ not written yet ›",
-      ...(written ? {} : { unwritten: true }),
+      value: value || "‹ not written yet ›",
+      ...(value ? {} : { unwritten: true }),
     });
   }
-  groups.push({ kind: "authored", source: "districts.toml", freshness: null, lines: authored });
 
-  return groups;
+  return { kind: "authored", source: "districts.toml", freshness: null, lines };
+}
+
+/** The card used to show one flat list in one voice: a 502 beside a commit count
+ *  beside a hand-written sentence. The site keeps these apart internally and
+ *  enforces it at the merge; this is that separation made visible.
+ *
+ *  Four groups, not the three the issue sketched. The watched record is folded
+ *  from past probes and kept in its own file, so filing it under health.json
+ *  would be a false claim about where it came from — on a page whose subject is
+ *  where things came from. */
+export function evidenceGroups(
+  d: District,
+  health: HealthSnapshot | null,
+  now: Date = new Date(),
+): EvidenceGroup[] {
+  return [
+    observedGroup(d, health, now),
+    recordedGroup(d, now),
+    derivedGroup(d, now),
+    authoredGroup(d),
+  ].filter((g): g is EvidenceGroup => g !== null);
 }
 
 export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {

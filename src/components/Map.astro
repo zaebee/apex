@@ -41,7 +41,7 @@ const coldLine = [
 </pre>
 
 <div class="rows">
-  {districts.map((d) => <District district={d} checkedAt={health?.checkedAt ?? null} />)}
+  {districts.map((d) => <District district={d} health={health} />)}
 </div>
 
 {sayCold && <pre class="prose"><span class="dim">{coldLine}</span></pre>}

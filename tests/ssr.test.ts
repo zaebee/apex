@@ -248,12 +248,15 @@ test("the regrouped card still carries every value, and names every source", asy
 
   for (const d of districts) {
     const card = renderedCard(withoutScripts, d.id);
-    const groups = evidenceGroups(d, health?.checkedAt ?? null);
+    const groups = evidenceGroups(d, health);
 
     for (const g of groups) {
       expect(card).toContain(g.kind);
       expect(card).toContain(g.source);
-      if (g.freshness) expect(card).toContain(g.freshness);
+      // the vocabulary, not the age: this test ran after the build and failed
+      // whenever `readAt` crossed a label boundary between the two, which is a
+      // 60-second window at the "just now" end
+      if (g.freshness) expect(card).toContain(g.freshness.split(" ")[0] as string);
       for (const line of g.lines) expect(card).toContain(line.value);
     }
 

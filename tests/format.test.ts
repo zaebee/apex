@@ -308,10 +308,119 @@ test("the second line is spoken too, as its own sentence", () => {
 // visitor as one flat list in one voice. Each group names the file it came from
 // and states freshness in its own vocabulary — or states none, where there is
 // none to state.
+/** A snapshot that genuinely observed aura, so the observed group has grounds. */
+const sawAura = (checkedAt: string, over: Partial<HealthSnapshot> = {}): HealthSnapshot => ({
+  ok: true,
+  checkedAt,
+  entries: {
+    "aura.zae.life": {
+      host: "aura.zae.life",
+      ok: false,
+      code: 502,
+      finalUrl: null,
+      offSite: false,
+    },
+  },
+  ...over,
+});
+
+// The heading says observed and the byline says health.json. Both are claims,
+// and neither was gated on anything having been observed: a snapshot whose own
+// doc says it "carries no testimony" still produced `checked 2 min ago` over a
+// status that means nobody looked.
+test("the observed group appears only when the snapshot observed this host", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const at = "2026-08-14T11:58:00.000Z";
+  const kinds = (h: HealthSnapshot | null) => evidenceGroups(d(), h, now).map((g) => g.kind);
+
+  // the check ran and saw nothing
+  expect(kinds({ ok: false, checkedAt: at, entries: {} })).not.toContain("observed");
+  // and the harder case: the control host failed, so the run carries no
+  // testimony, but some districts did answer and left entries behind. An
+  // entries-only gate passes this; only the ok gate refuses it.
+  expect(
+    kinds({
+      ok: false,
+      checkedAt: at,
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: true,
+          code: 200,
+          finalUrl: null,
+          offSite: false,
+        },
+      },
+    }),
+  ).not.toContain("observed");
+  // the check worked but never reached this host
+  expect(kinds({ ok: true, checkedAt: at, entries: {} })).not.toContain("observed");
+  // there is no snapshot to cite
+  expect(kinds(null)).not.toContain("observed");
+  // and when it was really observed, the group is there
+  expect(kinds(sawAura(at))).toContain("observed");
+});
+
+// resolveStatus returns "private" from authored visibility before it consults
+// the snapshot. Filing that under health.json puts districts.toml's testimony
+// under another file's byline — on the page built to keep them apart.
+test("the observed group reports the probe, not the status the site resolved", () => {
+  const now = new Date("2026-08-14T12:00:00.000Z");
+  const observed = evidenceGroups(
+    d({ status: "private", code: 403 }),
+    sawAura("2026-08-14T11:58:00.000Z", {
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: false,
+          code: 403,
+          finalUrl: null,
+          offSite: false,
+        },
+      },
+    }),
+    now,
+  ).find((g) => g.kind === "observed");
+
+  const values = observed?.lines.map((l) => l.value).join(" ") ?? "";
+  expect(values).not.toContain("private");
+  // the same word the row uses for that code, from the entry rather than the
+  // status the site resolved
+  expect(values).toContain("forbidden");
+  // the number is the observation the phrase is a reading of; both are kept
+  expect(values).toContain("403");
+});
+
+// The codebase rejects a future readAt and a future since, saying a stamp in
+// the future was not an observation. checkedAt was read unvalidated, and
+// freshness clamps the age to zero, so a year ahead read as "just now".
+test("a checkedAt in the future is not treated as an observation", () => {
+  const groups = evidenceGroups(
+    d(),
+    sawAura("2027-08-14T12:00:00.000Z"),
+    new Date("2026-08-14T12:00:00.000Z"),
+  );
+  expect(groups.map((g) => g.kind)).not.toContain("observed");
+});
+
+// A missing stamp used to render `read  not recorded` in amber. Turning it into
+// a plain absent freshness made it indistinguishable from the two silences that
+// are deliberate.
+test("a missing read stamp is flagged, not silently silent", () => {
+  const derived = evidenceGroups(
+    d({ stats: { commits: 5, activeDays: 2, first: "2026-01-01", last: "2026-08-13" } }),
+    null,
+    new Date("2026-08-14T12:00:00.000Z"),
+  ).find((g) => g.kind === "derived");
+
+  expect(derived?.freshness).toBe("read · not recorded");
+  expect(derived?.unrecorded).toBe(true);
+});
+
 test("each evidence group names its own file", () => {
   const groups = evidenceGroups(
     d(),
-    "2026-08-14T12:00:00.000Z",
+    sawAura("2026-08-14T12:00:00.000Z"),
     new Date("2026-08-14T12:02:00.000Z"),
   );
   const byKind = Object.fromEntries(groups.map((g) => [g.kind, g.source]));
@@ -336,7 +445,7 @@ test("freshness is stated in each group's own vocabulary, or not at all", () => 
         readAt: "2026-08-11T12:00:00.000Z",
       },
     }),
-    "2026-08-14T12:00:00.000Z",
+    sawAura("2026-08-14T12:00:00.000Z"),
     now,
   );
   const g = Object.fromEntries(groups.map((x) => [x.kind, x.freshness]));
@@ -372,7 +481,7 @@ test("the watched record names history.json, not the health snapshot", () => {
       code: 502,
       observed: { state: "cold", since: "2026-08-13T00:00:00.000Z", checks: 5, gaps: 0 },
     }),
-    "2026-08-14T12:00:00.000Z",
+    sawAura("2026-08-14T12:00:00.000Z"),
     new Date("2026-08-14T12:00:00.000Z"),
   );
   const recorded = groups.find((g) => g.kind === "recorded");

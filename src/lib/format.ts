@@ -48,8 +48,16 @@ const MONTHS = [
  *  correct its source. */
 function monthOf(iso: string): { year: string; name: string } | null {
   const m = /^(\d{4})-(\d{2})-\d{2}/.exec(iso);
-  const name = m ? MONTHS[Number.parseInt(m[2] as string, 10) - 1] : undefined;
-  return m && name ? { year: m[1] as string, name } : null;
+  if (!m) return null;
+
+  // destructured and checked rather than asserted: an `as` here would be a
+  // claim to know more than the types do, which is the habit this file spends
+  // its comments arguing against
+  const [, year, month] = m;
+  if (!year || !month) return null;
+
+  const name = MONTHS[Number.parseInt(month, 10) - 1];
+  return name ? { year, name } : null;
 }
 
 /** `2026-08-13` reads as `aug'26`. An em dash where there is no date, because a

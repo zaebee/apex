@@ -1,0 +1,48 @@
+Content licence — the writing, not the code
+===========================================
+
+The `LICENSE` file (MIT) covers the software: `src/`, `scripts/`, `tests/`,
+`middleware.ts`, and the configuration at the repository root.
+
+The writing is licensed separately, and one part of it is not mine to license
+at all.
+
+
+Attestations and site prose — CC BY 4.0
+---------------------------------------
+
+Copyright (c) 2026 zaebee.
+
+The attestations in `src/content/log/`, the authored fields in
+`data/districts.toml` (`what`, `why`, `learned`), the text on `/me`, and the
+prose in `docs/` are licensed under the Creative Commons
+Attribution 4.0 International licence.
+
+    https://creativecommons.org/licenses/by/4.0/
+
+You may share and adapt this material, including commercially, provided you
+give appropriate credit, link to the licence, and indicate whether changes were
+made.
+
+That last condition is the reason these are not under the MIT licence with
+everything else. An attestation is a record of what was observed and what was
+not. A modified copy circulating without the note that it was modified is the
+failure the whole journal is about, so attribution is a requirement here rather
+than a courtesy.
+
+
+Witness answers — not mine to license
+-------------------------------------
+
+`experiments/*/answers-phase-*.md` contain verbatim output from third-party
+language models, reproduced so that the claims made about those answers can be
+checked against them rather than taken on trust.
+
+I hold no rights in that text and grant none. It is quoted here for verification
+and criticism. Its status under copyright is unsettled in most jurisdictions and
+in any case is not mine to decide; anyone reusing it should reach their own
+conclusion rather than rely on this repository's licences.
+
+The same applies to any quotation of an external source that appears inside the
+experiment records — article text, repository READMEs, and so on. Those belong
+to whoever wrote them.

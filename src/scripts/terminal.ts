@@ -198,6 +198,17 @@ function dispatch(action: Action, echo: string) {
       output?.replaceChildren();
       return;
 
+    // Reached only from Escape, but it goes through here like everything else:
+    // an Action the dispatcher does not know is a case that silently does
+    // nothing the first time anyone routes it, and this file's whole claim is
+    // that a click, a typed line and a key cannot drift apart.
+    case "dismiss":
+      for (const card of document.querySelectorAll<HTMLDetailsElement>("details.district[open]")) {
+        card.open = false;
+      }
+      sink?.focus();
+      return;
+
     case "sudo":
       emit(
         `<pre class="prose"><span class="dim">  zaebee is not in the sudoers file.</span>\n  You are, though. This whole city is unlocked — that is the point.</pre>`,
@@ -332,17 +343,20 @@ sink.focus();
 
 /* Escape closes whatever is open and puts the caret back at the prompt. A
    reader who opened a card with the keyboard previously had no way back except
-   cycling Tab through everything after it. Its own listener, because the
-   typing redirect below hands focus back to real controls — a summary among
-   them — and would return before ever seeing this key. The typed line is left
-   alone: Escape is for getting out of a card, not for discarding work. */
+   cycling Tab through everything after it. Its own listener, because the typing
+   redirect above returns early when a real control has focus — a summary is one
+   — and would never see this key. The typed line is left alone: Escape is for
+   getting out of a card, not for discarding work.
+
+   isComposing is checked because an IME sends Escape to cancel a candidate
+   window, and taking it there would discard what someone is in the middle of
+   typing in Japanese or Chinese while a card sits open behind them. */
 window.addEventListener("keydown", (e) => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (actionFromKey(e.key)?.kind !== "dismiss") return;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+
+  const action = actionFromKey(e.key);
+  if (action?.kind !== "dismiss") return;
 
   e.preventDefault();
-  for (const card of document.querySelectorAll<HTMLDetailsElement>("details.district[open]")) {
-    card.open = false;
-  }
-  sink?.focus();
+  dispatch(action, "");
 });

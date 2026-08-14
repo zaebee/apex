@@ -242,6 +242,39 @@ test("a district with one active day is not spoken of in the plural", () => {
   expect(many).toContain("517 commits across 41 active days,");
 });
 
+// The columns and the sentence must not name different months. They parsed the
+// date two different ways: `shortMonth` reads the fields, `spokenMonth` used
+// `Date.parse`, which rolls a non-calendar day into the next month. takeStats
+// admits `2026-02-31` — its guard is a shape, not a calendar — and stats.json is
+// machine-written, which the loader's own comment says is not to be trusted.
+test("the columns and the spoken form never name different months", () => {
+  for (const last of ["2026-02-31", "2026-08-13", "2026-12-31", "2026-01-01"]) {
+    const district = d({ stats: { commits: 5, activeDays: 2, first: "2026-01-01", last } });
+    const column = districtCells(district).last.trim();
+    const spoken = districtSpoken(district);
+    if (column === "—") continue;
+    // "feb'26" and "February 2026" have to agree about February
+    const month = column.slice(0, 3);
+    expect(spoken.toLowerCase()).toContain(month.toLowerCase());
+  }
+});
+
+test("a date outside the calendar is reported, not silently moved", () => {
+  const spoken = districtSpoken(
+    d({ stats: { commits: 5, activeDays: 2, first: "2026-01-01", last: "2026-02-31" } }),
+  );
+  expect(spoken).toContain("February 2026");
+  expect(spoken).not.toContain("March");
+});
+
+test("a month outside 1-12 is dropped from both tellings, not guessed", () => {
+  const district = d({
+    stats: { commits: 5, activeDays: 2, first: "2026-01-01", last: "2026-13-01" },
+  });
+  expect(districtCells(district).last.trim()).toBe("—");
+  expect(districtSpoken(district)).not.toContain("last ");
+});
+
 // `what` is the author's prose and often ends in a full stop; appending another
 // produced "Held the apex until now..", which is read as two pauses.
 test("a second line that already ends in a stop does not get another", () => {
@@ -251,6 +284,11 @@ test("a second line that already ends in a stop does not get another", () => {
   expect(districtSpoken(d({ what: "Agent negotiation infrastructure" }))).toEndWith(
     "Agent negotiation infrastructure.",
   );
+  // a stop can sit inside a closing quote or bracket
+  expect(districtSpoken(d({ what: 'He said "done."' }))).toEndWith('He said "done."');
+  expect(districtSpoken(d({ what: "Ships (finally!)" }))).toEndWith("Ships (finally!)");
+  // and a closing bracket with no stop before it still needs one
+  expect(districtSpoken(d({ what: "A thing (mostly)" }))).toEndWith("A thing (mostly).");
 });
 
 test("the second line is spoken too, as its own sentence", () => {

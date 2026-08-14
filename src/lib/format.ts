@@ -20,16 +20,43 @@ function legendFor(districts: District[]): string {
   return extra.length ? `${LEGEND_BASE}\n${extra.join("    ")}` : LEGEND_BASE;
 }
 
-const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** One parse, because the column and the spoken sentence are two tellings of
+ *  the same date and must not disagree about it. They did: this read the fields
+ *  while the spoken form used `Date.parse`, which rolls a non-calendar day into
+ *  the next month — `2026-02-31` showed `feb'26` and said "March 2026". The
+ *  guard in `takeStats` is a shape, `/^\d{4}-\d{2}-\d{2}$/`, not a calendar,
+ *  and `stats.json` is machine-written. The same hazard is already documented
+ *  for `readAt` in districts.ts; it came back here through a second parser.
+ *
+ *  A day that does not exist is reported under the month it was recorded in,
+ *  not moved to the month it would land on. This tool reports; it does not
+ *  correct its source. */
+function monthOf(iso: string): { year: string; name: string } | null {
+  const m = /^(\d{4})-(\d{2})-\d{2}/.exec(iso);
+  const name = m ? MONTHS[Number.parseInt(m[2] as string, 10) - 1] : undefined;
+  return m && name ? { year: m[1] as string, name } : null;
+}
 
 /** `2026-08-13` reads as `aug'26`. An em dash where there is no date, because a
  *  district with no commits has no last commit to report. */
 export function shortMonth(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-\d{2}/.exec(iso);
-  if (!m) return "—";
-  const month = MONTHS[Number.parseInt(m[2] as string, 10) - 1];
-  if (!month) return "—";
-  return `${month}'${(m[1] as string).slice(2)}`;
+  const m = monthOf(iso);
+  return m ? `${m.name.slice(0, 3).toLowerCase()}'${m.year.slice(2)}` : "—";
 }
 
 /** Where a district can actually be visited: its deployment if it has one, its
@@ -139,22 +166,21 @@ export function districtCells(d: District, opts: { narrow?: boolean } = {}): Dis
   };
 }
 
-// Spoken dates are written out. `aug\'26` is a column that happens to fit; read
-// aloud it is "aug apostrophe 26".
-const SPOKEN_MONTH = new Intl.DateTimeFormat("en-GB", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-/** Ends a spoken sentence without doubling punctuation the author already wrote. */
+/** Ends a spoken sentence without doubling punctuation the author already
+ *  wrote. The stop may sit inside a closing quote or bracket — `He said
+ *  "done."` — which a check on the final character alone missed, producing the
+ *  two pauses this exists to prevent. */
 function stop(s: string): string {
-  return /[.!?…]$/.test(s.trimEnd()) ? s.trimEnd() : `${s.trimEnd()}.`;
+  const t = s.trimEnd();
+  return /[.!?…][)\]"»”'’]*$/.test(t) ? t : `${t}.`;
 }
 
+// Spoken dates are written out: `aug\'26` is a column that happens to fit, but
+// read aloud it is "aug apostrophe 26". Same parse as the column, so the two
+// tellings cannot name different months.
 function spokenMonth(iso: string): string | null {
-  const t = Date.parse(iso);
-  return Number.isNaN(t) ? null : SPOKEN_MONTH.format(new Date(t));
+  const m = monthOf(iso);
+  return m ? `${m.name} ${m.year}` : null;
 }
 
 /** The same district as `districtCells`, said rather than laid out.

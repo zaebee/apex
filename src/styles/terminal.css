@@ -275,3 +275,18 @@ a:focus-visible,
     white-space: pre-wrap;
   }
 }
+
+/* Clipped, not display:none — the latter takes the text out of the
+   accessibility tree as well, which is the one thing it must not do. The row's
+   `white-space: pre` would otherwise lay this sentence out as another line. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: normal;
+  border: 0;
+}

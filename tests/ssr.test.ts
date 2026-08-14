@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { loadDistricts } from "../src/lib/districts";
-import { districtRow } from "../src/lib/format";
+import { districtRow, districtSpoken } from "../src/lib/format";
 
 /** Astro emits static output to dist/ with no server routes and to dist/client/
  *  once one exists (/api/ping). Resolved rather than hardcoded so adding or
@@ -34,6 +34,8 @@ const decode = (s: string) =>
     .replace(/&amp;/g, "&");
 
 interface RenderedRow {
+  seen: string;
+  spoken: string;
   id: string;
   html: string;
   text: string;
@@ -41,16 +43,27 @@ interface RenderedRow {
 
 /** Rows straight out of the built page, so assertions run against what ships
  *  rather than against the library that produced it. */
+/** The two halves of a row are pulled apart here rather than in each test: the
+ *  columns a sighted reader sees, and the sentence a screen reader is given.
+ *  They must agree about the district and they are not the same bytes, so a
+ *  test that took the summary's whole text would compare a mixture of both. */
+function split(html: string): { seen: string; spoken: string } {
+  const spoken = /<span class="visually-hidden">([\s\S]*?)<\/span>/.exec(html);
+  return {
+    seen: decode(
+      html.replace(/<span class="visually-hidden">[\s\S]*?<\/span>/, "").replace(/<[^>]*>/g, ""),
+    ),
+    spoken: decode((spoken?.[1] ?? "").replace(/<[^>]*>/g, "")),
+  };
+}
+
 function renderedRows(source: string): RenderedRow[] {
   const out: RenderedRow[] = [];
   const re = /<summary[^>]*data-id="([^"]+)"[^>]*>([\s\S]*?)<\/summary>/g;
   let m = re.exec(source);
   while (m) {
-    out.push({
-      id: m[1] as string,
-      html: m[2] as string,
-      text: decode((m[2] as string).replace(/<[^>]*>/g, "")),
-    });
+    const html = m[1] === undefined ? "" : (m[2] as string);
+    out.push({ id: m[1] as string, html, ...split(html), text: split(html).seen });
     m = re.exec(source);
   }
   return out;
@@ -99,8 +112,30 @@ test("a rendered row is byte-identical to the shared text formatter", async () =
     expect(d).toBeDefined();
     if (!d) continue;
     // the continuation line, when present, is a second line inside the button
-    const firstLine = row.text.split("\n")[0] as string;
+    const firstLine = row.seen.split("\n")[0] as string;
     expect(firstLine).toBe(districtRow(d));
+  }
+});
+
+// The columns are marked aria-hidden and a sentence is announced instead. Both
+// are generated from the one district, and this asserts the page ships what the
+// formatter produced — a hidden line built anywhere else would let the site
+// announce something it does not display, and nobody would see it happen.
+test("every row announces the shared spoken form, and the columns are hidden from it", async () => {
+  const { districts } = await loadDistricts();
+  const rows = renderedRows(withoutScripts);
+  expect(rows.length).toBeGreaterThan(0);
+
+  for (const row of rows) {
+    const d = districts.find((x) => x.id === row.id);
+    expect(d).toBeDefined();
+    if (!d) continue;
+
+    expect(row.spoken).toBe(districtSpoken(d));
+    // a sentence, not a layout: no column padding survives into speech
+    expect(row.spoken).not.toMatch(/ {2}/);
+    // and the padded columns are not announced alongside it
+    expect(row.html).toContain('aria-hidden="true"');
   }
 });
 
@@ -187,4 +222,18 @@ test("the map lives outside the container clear empties", () => {
 
 test("the keyboard is never dropped into the invisible input", () => {
   expect(html).toMatch(/id="sink"[^>]*tabindex="-1"|tabindex="-1"[^>]*id="sink"/);
+});
+
+// The rule that makes the announced sentence invisible must not make it
+// unannounced. `display: none` and `visibility: hidden` both remove a node from
+// the accessibility tree as well as from the page, so either one would leave the
+// map reading exactly as it did before while every other test still passed.
+test("the hidden sentence is clipped, not removed from the accessibility tree", async () => {
+  const html = await Bun.file("dist/client/index.html").text();
+  const rule = /\.visually-hidden\{([^}]*)\}/.exec(html)?.[1];
+
+  expect(rule).toBeDefined();
+  expect(rule).toContain("clip-path");
+  expect(rule).not.toContain("display:none");
+  expect(rule).not.toContain("visibility:hidden");
 });

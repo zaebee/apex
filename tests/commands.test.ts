@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type Action, actionFromClick, parse } from "../src/lib/commands";
+import { type Action, actionFromClick, actionFromKey, parse } from "../src/lib/commands";
 
 test("bare commands parse", () => {
   expect(parse("ls")).toEqual({ kind: "ls" });
@@ -121,5 +121,20 @@ test("and the same holds through the click path", () => {
     const el = { dataset: { act: "log", id } } as unknown as HTMLElement;
     const action = actionFromClick(el);
     expect(action?.kind).not.toBe("logEntry");
+  }
+});
+
+// A reader who opened a card with the keyboard had no way back to the prompt
+// except cycling Tab through everything after it. Escape is the key people
+// already try. Kept as a pure decision here for the same reason clicks are:
+// the browser wiring stays thin and the rule stays testable.
+test("escape closes what is open and returns to the prompt", () => {
+  expect(actionFromKey("Escape")).toEqual({ kind: "dismiss" });
+  expect(actionFromKey("Esc")).toEqual({ kind: "dismiss" });
+});
+
+test("no other key is a command on its own", () => {
+  for (const key of ["Enter", "Tab", "a", " ", "ArrowUp", "Backspace"]) {
+    expect(actionFromKey(key)).toBeNull();
   }
 });

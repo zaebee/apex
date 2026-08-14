@@ -139,6 +139,55 @@ export function districtCells(d: District, opts: { narrow?: boolean } = {}): Dis
   };
 }
 
+// Spoken dates are written out. `aug\'26` is a column that happens to fit; read
+// aloud it is "aug apostrophe 26".
+const SPOKEN_MONTH = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** Ends a spoken sentence without doubling punctuation the author already wrote. */
+function stop(s: string): string {
+  return /[.!?…]$/.test(s.trimEnd()) ? s.trimEnd() : `${s.trimEnd()}.`;
+}
+
+function spokenMonth(iso: string): string | null {
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : SPOKEN_MONTH.format(new Date(t));
+}
+
+/** The same district as `districtCells`, said rather than laid out.
+ *
+ *  Built here, beside the columns and from the one District, because the two
+ *  must not drift: a hidden line generated somewhere else would let the page
+ *  announce what it does not display — the private form of the disagreement
+ *  the HTML map and the plain-text branch are already kept out of.
+ *
+ *  The status glyph is dropped. Its meaning is carried by the reply word, and
+ *  reading both aloud says the same thing twice. The padding is dropped for the
+ *  same reason it exists: it means something to the eye and nothing to an ear. */
+export function districtSpoken(d: District, now: Date = new Date()): string {
+  const parts = [d.id, d.host, replyFor(d.status, d.code)].filter(
+    (p): p is string => typeof p === "string" && p.length > 0,
+  );
+
+  if (d.stats) {
+    const commits = `${d.stats.commits} commit${d.stats.commits === 1 ? "" : "s"}`;
+    const days = `${d.stats.activeDays} active day${d.stats.activeDays === 1 ? "" : "s"}`;
+    const last = spokenMonth(d.stats.last);
+    parts.push(`${commits} across ${days}${last ? `, last ${last}` : ""}`);
+  }
+
+  // A second sentence, not a fourth clause: the row shows one line beneath the
+  // columns, and speech keeps the same shape. `what` is the author's prose and
+  // often ends in a full stop already — appending another produced "until now..",
+  // which a screen reader pauses on twice.
+  const second = secondLineFor(d, now);
+  const sentence = `${parts.join(", ")}.`;
+  return second ? `${sentence} ${stop(second)}` : sentence;
+}
+
 export function districtRow(d: District, opts: { narrow?: boolean } = {}): string {
   const c = districtCells(d, opts);
   return c.mark + c.id + c.host + c.reply + c.stats + c.last;

@@ -1,4 +1,4 @@
-import { type Action, actionFromClick, parse } from "../lib/commands";
+import { type Action, actionFromClick, actionFromKey, parse } from "../lib/commands";
 
 const term = document.getElementById("term");
 const output = document.getElementById("output");
@@ -329,3 +329,20 @@ window.addEventListener("keydown", (e) => {
 });
 
 sink.focus();
+
+/* Escape closes whatever is open and puts the caret back at the prompt. A
+   reader who opened a card with the keyboard previously had no way back except
+   cycling Tab through everything after it. Its own listener, because the
+   typing redirect below hands focus back to real controls — a summary among
+   them — and would return before ever seeing this key. The typed line is left
+   alone: Escape is for getting out of a card, not for discarding work. */
+window.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (actionFromKey(e.key)?.kind !== "dismiss") return;
+
+  e.preventDefault();
+  for (const card of document.querySelectorAll<HTMLDetailsElement>("details.district[open]")) {
+    card.open = false;
+  }
+  sink?.focus();
+});

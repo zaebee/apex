@@ -3,13 +3,14 @@ import type { District } from "../src/lib/districts";
 import {
   districtCells,
   districtRow,
+  districtSpoken,
   LEGEND,
   observedFor,
   pad,
   shortMonth,
   summaryLines,
 } from "../src/lib/format";
-import type { HealthSnapshot } from "../src/lib/status";
+import { type HealthSnapshot, MARK } from "../src/lib/status";
 
 const d = (over: Partial<District> = {}): District => ({
   id: "aura",
@@ -187,4 +188,79 @@ test("a streak older than eleven months carries its year", () => {
     new Date("2026-09-20T00:00:00Z"),
   );
   expect(line).toContain("Aug 25");
+});
+
+// The row is padded columns, which a screen reader announces as
+// "black circle, aura, aura dot zae dot life, 517c slash 41d, aug apostrophe 26".
+// The padding is decoration that means something only to the eye.
+test("a district has a spoken form that is a sentence, not a layout", () => {
+  const spoken = districtSpoken(d());
+
+  expect(spoken).toContain("aura.zae.life");
+  expect(spoken).toContain("517 commits across 41 active days");
+  expect(spoken).toContain("August 2026");
+  // no column padding, and no glyph whose meaning the words already carry
+  expect(spoken).not.toMatch(/ {2}/);
+  expect(spoken).not.toContain(MARK.alive);
+});
+
+// The spoken form and the columns come from one District on purpose. If they
+// are built separately they drift, and the site announces something it does not
+// display — the private version of the defect it already guards against between
+// the HTML map and the curl branch.
+test("the spoken form and the columns describe the same district", () => {
+  for (const district of [
+    d(),
+    d({ status: "cold", code: 502 }),
+    d({ status: "offline", host: null, code: null, stats: null }),
+    d({ status: "private", host: null, repo: null, what: null }),
+    d({ status: "unknown", code: null }),
+    d({ stats: { commits: 1, activeDays: 1, first: "2026-01-01", last: "2026-01-01" } }),
+  ]) {
+    const cells = districtCells(district);
+    const spoken = districtSpoken(district);
+
+    expect(spoken).toContain(district.id);
+    expect(spoken).toContain(cells.reply.trim());
+    if (district.host) expect(spoken).toContain(district.host);
+    if (district.stats) expect(spoken).toContain(String(district.stats.commits));
+    expect(spoken).not.toMatch(/ {2}/);
+  }
+});
+
+// Asserted with what follows it: "1 active days" contains "1 active day", so a
+// toContain on the singular passed against a version that always pluralised.
+test("a district with one active day is not spoken of in the plural", () => {
+  const one = districtSpoken(
+    d({ stats: { commits: 1, activeDays: 1, first: "2026-01-01", last: "2026-01-01" } }),
+  );
+  expect(one).toContain("1 commit across 1 active day,");
+  expect(one).not.toContain("days");
+  expect(one).not.toContain("commits");
+
+  const many = districtSpoken(d());
+  expect(many).toContain("517 commits across 41 active days,");
+});
+
+// `what` is the author's prose and often ends in a full stop; appending another
+// produced "Held the apex until now..", which is read as two pauses.
+test("a second line that already ends in a stop does not get another", () => {
+  expect(districtSpoken(d({ what: "A Telegram WebApp game. Held the apex until now." }))).toEndWith(
+    "Held the apex until now.",
+  );
+  expect(districtSpoken(d({ what: "Agent negotiation infrastructure" }))).toEndWith(
+    "Agent negotiation infrastructure.",
+  );
+});
+
+test("the second line is spoken too, as its own sentence", () => {
+  const watched = districtSpoken(
+    d({
+      status: "cold",
+      code: 502,
+      observed: { state: "cold", since: "2026-08-13T00:00:00.000Z", checks: 5, gaps: 0 },
+    }),
+    new Date("2026-08-14T12:00:00.000Z"),
+  );
+  expect(watched).toContain("no answer in 5 checks");
 });

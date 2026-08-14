@@ -394,6 +394,36 @@ test("the observed group reports the probe, not the status the site resolved", (
 // The codebase rejects a future readAt and a future since, saying a stamp in
 // the future was not an observation. checkedAt was read unvalidated, and
 // freshness clamps the age to zero, so a year ahead read as "just now".
+// A lapsed domain landing on a registrar page was observed — something
+// answered — but it was not this district. `probe` forces ok false there, so
+// without the off-site branch the group reports it as a district that did not
+// answer, which is a different and more confident claim than the truth.
+test("a probe that landed elsewhere is unknown, and says where it landed", () => {
+  const observed = evidenceGroups(
+    d(),
+    sawAura("2026-08-14T11:58:00.000Z", {
+      entries: {
+        "aura.zae.life": {
+          host: "aura.zae.life",
+          ok: false,
+          code: 200,
+          finalUrl: "https://sedoparking.com/aura.zae.life",
+          offSite: true,
+        },
+      },
+    }),
+    new Date("2026-08-14T12:00:00.000Z"),
+  ).find((g) => g.kind === "observed");
+
+  // both halves: the district's status is unknown, and 200 is what came back.
+  // Reporting only the code would claim the district answered it.
+  expect(observed?.lines.find((l) => l.label === "answered")?.value).toBe("unknown · 200");
+  // what was seen, beside what was concluded from it
+  expect(observed?.lines.find((l) => l.label === "landed")?.value).toBe(
+    "https://sedoparking.com/aura.zae.life",
+  );
+});
+
 test("a checkedAt in the future is not treated as an observation", () => {
   const groups = evidenceGroups(
     d(),

@@ -1,7 +1,7 @@
 import type { District } from "./districts";
 import { freshness } from "./freshness";
 import type { ObservedState } from "./history";
-import { type HealthSnapshot, MARK, replyFor, type Status } from "./status";
+import { type HealthEntry, type HealthSnapshot, MARK, replyFor, type Status } from "./status";
 
 export const pad = (s: string, n: number): string =>
   s.length >= n ? s : s + " ".repeat(n - s.length);
@@ -233,6 +233,15 @@ export interface EvidenceGroup {
   lines: EvidenceLine[];
 }
 
+/** What the probe alone saw, with no authored visibility folded in — which is
+ *  the difference between this and `resolveStatus`. Off-site is `unknown`
+ *  because something answered and it was not this district: an observation was
+ *  made, and it was not of the thing being asked about. */
+function statusOf(entry: HealthEntry): Status {
+  if (entry.offSite === true) return "unknown";
+  return entry.ok === true ? "alive" : "cold";
+}
+
 /** What the probe found, and only that.
  *
  *  Gated on the snapshot having observed *this host*, not merely on the district
@@ -265,8 +274,7 @@ function observedGroup(
   const stamped = Date.parse(health.checkedAt);
   if (Number.isNaN(stamped) || stamped > now.getTime()) return null;
 
-  const seen: Status = entry.offSite === true ? "unknown" : entry.ok === true ? "alive" : "cold";
-  const reply = replyFor(seen, entry.code);
+  const reply = replyFor(statusOf(entry), entry.code);
   // the phrase and the number together: the row has room for one, the card for
   // both, and the number is the observation the phrase is a reading of
   const answered =

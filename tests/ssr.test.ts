@@ -166,7 +166,7 @@ test("every district ships an openable card, not just a row", async () => {
 });
 
 test("a card names its unwritten prose rather than filling it", () => {
-  // agents is the one district with nothing written yet, and the page says so
+  // agents is the one district with why/learned not written yet, and the page says so
   const card = renderedCard(withoutScripts, "agents");
   expect(card).toContain("not written yet");
 });

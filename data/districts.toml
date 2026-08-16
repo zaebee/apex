@@ -21,7 +21,7 @@ host = "car.zae.life"
 title = "car"
 what = "Accident damage assessment from photos"
 why = "Interest in blockchain for a real case — paying a person crypto for information that might be useful to lawyers."
-learned = "The value was in the photo analysis, not the chain. Blockchain stayed ornament and never shipped."
+learned = "The value was in the photo analysis, not the chain. Blockchain stayed ornamental and never shipped."
 
 [comics]
 repo = "zaebee/comics-zone"

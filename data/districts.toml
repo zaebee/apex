@@ -2,8 +2,9 @@
 # Machines own the numbers in stats.json and health.json.
 # This file is the author's alone; no workflow may write to it.
 #
-# why and learned are deliberately absent until written. The site renders them
-# as ‹ not written yet ›, which is true, rather than filling them with text
+# why and learned are deliberately absent until written, and stay that way for
+# the districts whose author has not written them yet. The site renders a blank
+# slot as ‹ not written yet ›, which is true, rather than filling it with text
 # nobody meant.
 
 [aura]
@@ -11,63 +12,85 @@ repo = "zaebee/aura"
 host = "aura.zae.life"
 title = "aura"
 what = "Agent negotiation infrastructure"
+why = "I wanted to see whether my atcg-m architecture idea survives a real system — a clear “DNA” and a protocol for how the parts interact."
+learned = "As the architecture grows the concept breaks down and complicates — atcg-m sprawls. I am not sure the approach works."
 
 [car]
 repo = "zaebee/car-crash-genius"
 host = "car.zae.life"
 title = "car"
 what = "Accident damage assessment from photos"
+why = "Interest in blockchain for a real case — paying a person crypto for information that might be useful to lawyers."
+learned = "The value was in the photo analysis, not the chain. Blockchain stayed ornament and never shipped."
 
 [comics]
 repo = "zaebee/comics-zone"
 host = "comics.zae.life"
 title = "comics"
 what = "An endless comic where the reader is the hero"
+why = "My first contact with Google AI Studio — a remix that became a comic about me and my daughter."
+learned = "AI Studio let me ship something I could not otherwise have built — speed over quality on the first step."
 
 [hivemark]
 repo = "zaebee/hivemark"
 title = "hivemark"
 what = "Track records for code-review agents"
+why = "An assessment with a visual for reviewing agents — and the breeding mechanic to make them evolve."
+learned = "So far it taught me nothing — the project outgrew my meat brain's context window."
 
 [house]
 repo = "zaebee/house"
 title = "house"
 what = "20.9 sotki in Vologda oblast. Not software."
+why = "Wanted to learn how to plan my own plot properly."
+learned = "A digital plan is good, but measurements on the ground come first — I mis-measured distances, and the whole plan shifted."
 
 [grani]
 repo = "zaebee/memory-facets"
 host = "grani.zae.life"
 title = "grani"
 what = "Грани Памяти — a Telegram WebApp game. Held the apex until now."
+why = "A non-technical friend wanted a text RPG and could not hold its growth. I wanted to know whether I could."
+learned = "The project outgrew the idea long before it hit the code — but past that point, technical skill is what decides."
 
 [chat]
 repo = "zaebee/chat"
 host = "chat.zae.life"
 title = "chat"
 what = "Hive Chat — the living-application ecosystem where ATCG started."
+why = "Born of the idea of getting agents from different providers to talk in one space — and to design my own living-hive architecture."
+learned = "Bringing it all under one roof was too ambitious for me. The idea of collective decision-making should live on — it needs a more careful architecture."
 
 [crm]
 repo = "zaebee/agents-list"
 host = "crm.zae.life"
 title = "crm"
 what = "AI-CRM routing work across 59 specialised agents."
+why = "A CRM demo where every role — sales, support, routing — is played by a specialised agent."
+learned = "It became a zoo: it demands orchestration and a clear loop — and that many roles were never needed."
 
 [medicine]
 repo = "zaebee/medicine"
 host = "medicine.zae.life"
 title = "medicine"
 what = "Clinic site. Pivoted from Wagtail to a WordPress MVP after meeting the client."
+why = "A client order — the client later disappeared."
+learned = "I started building before the agreement was settled. I did part of the work, spent the time, and got no money."
 
 [quiz]
 repo = "zaebee/tech-quiz"
 host = "quiz.zae.life"
 title = "quiz"
-what = "Quiz platform, built and sold as a finished product."
+what = "Quiz platform, built and delivered — my first agent-only commercial build."
+why = "My first attempt at commercial development done entirely through agents — no hand-written code."
+learned = "Sold for experience, not money — and it proved the agent-only pipeline could carry a product to the end."
 
 [crash-hunter]
 repo = "zaebee/crash-hunter"
 title = "crash-hunter"
 what = "DePIN network for crowdsourcing and verifying accident data."
+why = "I no longer remember why I started this."
+learned = "What it taught me: DePIN is, for now, a buzzword for me."
 
 [agents]
 repo = "zaebee/agents"

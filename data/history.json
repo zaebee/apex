@@ -1,53 +1,53 @@
 {
-  "updatedAt": "2026-08-26T12:36:37.635Z",
+  "updatedAt": "2026-08-26T13:48:40.795Z",
   "hosts": {
     "aura.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "car.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "comics.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "grani.zae.life": {
       "state": "alive",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "chat.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "crm.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "medicine.zae.life": {
       "state": "alive",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     },
     "quiz.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
       "checks": 448,
-      "gaps": 0
+      "gaps": 1
     }
   }
 }

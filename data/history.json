@@ -1,52 +1,52 @@
 {
-  "updatedAt": "2026-10-08T04:45:26.455Z",
+  "updatedAt": "2026-10-08T11:42:50.299Z",
   "hosts": {
     "aura.zae.life": {
-      "state": "alive",
-      "since": "2026-09-12T11:51:29.658Z",
-      "checks": 146,
+      "state": "cold",
+      "since": "2026-10-08T11:42:50.299Z",
+      "checks": 1,
       "gaps": 0
     },
     "car.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     },
     "comics.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     },
     "grani.zae.life": {
-      "state": "alive",
-      "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
-      "gaps": 1
+      "state": "cold",
+      "since": "2026-10-08T11:42:50.299Z",
+      "checks": 1,
+      "gaps": 0
     },
     "chat.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     },
     "crm.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     },
     "medicine.zae.life": {
       "state": "alive",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     },
     "quiz.zae.life": {
       "state": "cold",
       "since": "2026-08-13T11:14:54.482Z",
-      "checks": 700,
+      "checks": 701,
       "gaps": 1
     }
   }

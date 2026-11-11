@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-11T08:41:52.540Z",
+  "checkedAt": "2026-11-11T16:48:16.467Z",
   "ok": true,
-  "lastOkAt": "2026-11-11T08:41:52.540Z",
+  "lastOkAt": "2026-11-11T16:48:16.467Z",
   "entries": {
     "aura.zae.life": {
       "host": "aura.zae.life",
@@ -26,8 +26,8 @@
     },
     "grani.zae.life": {
       "host": "grani.zae.life",
-      "ok": false,
-      "code": 502,
+      "ok": true,
+      "code": 200,
       "finalUrl": null,
       "offSite": false
     },
